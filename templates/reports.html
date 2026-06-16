@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0">التقارير</h4>
+    <div class="text-muted small">هذه الصفحة تعرض فقط الحقول التي خصصها مدير النظام لحسابك.</div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <form method="post">
+      <div class="row g-3">
+
+        <div class="col-md-2">
+          <label class="form-label">التسلسل</label>
+          <input name="shipment_id" class="form-control" value="{{ form_data.get('shipment_id','') }}" placeholder="مثال: 12">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">المعمل</label>
+          <select name="factory_id" class="form-select">
+            <option value="">الكل</option>
+            {% for f in factories %}
+              <option value="{{ f.id }}" {% if form_data.get('factory_id','') == (f.id|string) %}selected{% endif %}>{{ f.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label">نوع الشحن</label>
+          <select name="shipping_mode" class="form-select">
+            <option value="">الكل</option>
+            <option value="BRI" {% if form_data.get('shipping_mode','') == 'BRI' %}selected{% endif %}>بري</option>
+            <option value="BAHRI" {% if form_data.get('shipping_mode','') == 'BAHRI' %}selected{% endif %}>بحري</option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label">الحالة</label>
+          <select name="status" class="form-select">
+            <option value="">الكل</option>
+            <option value="NEW" {% if form_data.get('status','') == 'NEW' %}selected{% endif %}>طلبية جديدة</option>
+            <option value="IN_TRANSIT" {% if form_data.get('status','') == 'IN_TRANSIT' %}selected{% endif %}>قيد الشحن</option>
+            <option value="RECEIVED" {% if form_data.get('status','') == 'RECEIVED' %}selected{% endif %}>مستلمة</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">رقم الفاتورة</label>
+          <input name="invoice_no" class="form-control" value="{{ form_data.get('invoice_no','') }}" placeholder="مثال: INV-2026-01">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">رقم بوليصة الشحن</label>
+          <input name="bol_no" class="form-control" value="{{ form_data.get('bol_no','') }}" placeholder="مثال: BL-8899">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">نوع الطلبية</label>
+          <select name="cargo_type" class="form-select">
+            <option value="">الكل</option>
+            <option value="CAR" {% if form_data.get('cargo_type','') == 'CAR' %}selected{% endif %}>سيارة</option>
+            <option value="CONTAINER" {% if form_data.get('cargo_type','') == 'CONTAINER' %}selected{% endif %}>حاوية</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">مبلغ الفاتورة من</label>
+          <input name="invoice_amount_min" class="form-control" value="{{ form_data.get('invoice_amount_min','') }}" placeholder="مثال: 1000">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">مبلغ الفاتورة إلى</label>
+          <input name="invoice_amount_max" class="form-control" value="{{ form_data.get('invoice_amount_max','') }}" placeholder="مثال: 5000">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">موعد الشحن من</label>
+          <input type="date" name="date_from" class="form-control" value="{{ form_data.get('date_from','') }}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">موعد الشحن إلى</label>
+          <input type="date" name="date_to" class="form-control" value="{{ form_data.get('date_to','') }}">
+        </div>
+
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-3 flex-wrap">
+        <a href="{{ url_for('reports_reset') }}" class="btn btn-outline-secondary">تصفير الحقول</a>
+        <button name="action" value="preview" class="btn btn-primary">عرض التقرير</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if shipments is not none %}
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+      <div>
+        <div class="fw-bold">النتائج: {{ shipments|length }}</div>
+        <div class="text-muted small">الأعمدة المعروضة مقفلة حسب تخصيص مدير النظام.</div>
+      </div>
+      <a class="btn btn-sm btn-success" href="{{ url_for('reports_pdf_from_last_preview') }}">تصدير PDF</a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle report-table">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            {% for field in report_fields %}
+              <th>{{ report_field_labels.get(field, field) }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in shipments %}
+          <tr>
+            <td class="fw-bold">#{{ s.id }}</td>
+            {% for field in report_fields %}
+              {% if field == 'status' %}
+                {% set st = status_badge(s.status) %}
+                <td><span class="badge text-bg-{{ st[1] }}">{{ st[0] }}</span></td>
+              {% else %}
+                <td>{{ report_value(s, field) }}</td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+
+          {% if shipments|length == 0 %}
+          <tr>
+            <td colspan="{{ report_fields|length + 1 }}" class="text-center text-muted py-4">لا توجد نتائج حسب الفلاتر.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

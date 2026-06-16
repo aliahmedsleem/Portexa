@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+{% set locked_by_carrier = shipment and shipment.carrier_id %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">{{ "تعديل شحنة" if shipment else "إضافة شحنة جديدة" }}</h4>
+    <div class="text-muted small">اختر المخلص أو شركة النقل من المفضلة فقط. أضفهم من خدمات التخليص أو خدمات النقل قبل إنشاء الشحنة.</div>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('shipments_list') }}">رجوع</a>
+</div>
+
+{% if locked_by_carrier %}
+<div class="alert alert-info border-0 shadow-sm">هذه الشحنة مرتبطة بشركة نقل، لذلك بيانات البوليصة ومبلغ الشحن ومواعيد الشحن والوصول وتفاصيل الشحن وحالة الشحنة يتم تحديثها من حساب شركة النقل فقط.</div>
+{% endif %}
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <form method="post" id="shipmentForm">
+      <div class="row g-3">
+        <div class="col-12"><h6 class="section-heading">بيانات الطلبية والفاتورة</h6></div>
+        <div class="col-md-3"><label class="form-label">اسم المصنع</label><select name="factory_id" class="form-select" required>{% for f in factories %}<option value="{{ f.id }}" {% if shipment and shipment.factory_id==f.id %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">البلد</label><select name="country_id" class="form-select" required>{% for c in countries %}<option value="{{ c.id }}" {% if shipment and shipment.country_id==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">رقم الفاتورة</label><input name="invoice_no" class="form-control" value="{{ shipment.invoice_no if shipment else '' }}"></div>
+        <div class="col-md-3"><label class="form-label">تاريخ الفاتورة</label><input type="date" name="invoice_date" class="form-control" value="{{ shipment.invoice_date.strftime('%Y-%m-%d') if shipment and shipment.invoice_date else '' }}"></div>
+        <div class="col-md-3"><label class="form-label">مبلغ الفاتورة</label><input name="invoice_amount" class="form-control" value="{{ shipment.invoice_amount if shipment and shipment.invoice_amount is not none else '' }}"></div>
+        <div class="col-md-3"><label class="form-label">العملة</label><select name="invoice_currency" class="form-select"><option value="USD" {% if shipment and shipment.invoice_currency=='USD' %}selected{% endif %}>دولار</option><option value="EUR" {% if shipment and shipment.invoice_currency=='EUR' %}selected{% endif %}>يورو</option></select></div>
+        <div class="col-md-3"><label class="form-label">نوع الشحن</label><select name="shipping_mode" class="form-select"><option value="BRI" {% if shipment and shipment.shipping_mode=='BRI' %}selected{% endif %}>بري</option><option value="BAHRI" {% if shipment and shipment.shipping_mode=='BAHRI' %}selected{% endif %}>بحري</option></select></div>
+        <div class="col-md-3"><label class="form-label">نوع الطلبية</label><select name="cargo_type" class="form-select"><option value="CONTAINER" {% if shipment and shipment.cargo_type=='CONTAINER' %}selected{% endif %}>حاوية</option><option value="CAR" {% if shipment and shipment.cargo_type=='CAR' %}selected{% endif %}>سيارة</option></select></div>
+        <div class="col-md-3"><label class="form-label">عدد الحاويات</label><input name="containers_count" class="form-control" value="{{ shipment.containers_count if shipment else 0 }}"></div>
+
+        <div class="col-12"><h6 class="section-heading">بيانات الشحن</h6></div>
+        <div class="col-md-4"><label class="form-label">شركة النقل</label><select name="carrier_id" id="carrierSelect" class="form-select"><option value="">بدون شركة نقل</option>{% for c in carriers %}<option value="{{ c.id }}" {% if shipment and shipment.carrier_id==c.id %}selected{% endif %}>{{ c.company_name or c.username }}</option>{% endfor %}</select><div class="form-text">لا تظهر هنا إلا شركات النقل الموجودة في مفضلتك. <a href="{{ url_for('service_carriers') }}">ابحث وأضف شركة نقل للمفضلة</a>.</div></div>
+        <div class="col-md-4"><label class="form-label">حالة عرض النقل</label><div class="readonly-field">{{ quote_status_label(shipment.carrier_quote_status) if shipment and shipment.carrier_id else 'بدون شركة نقل' }}</div></div>
+        <div class="col-md-4"><label class="form-label">مبلغ الشحن المقترح</label><div class="readonly-field">{{ money(shipment.shipping_cost) if shipment and shipment.shipping_cost is not none else 'تحدده شركة النقل لاحقاً' }}</div></div>
+
+        {% if shipment and shipment.carrier_id and shipment.carrier_quote_status == 'PROPOSED' %}
+        <div class="col-12">
+          <div class="quote-action-box">
+            <div><strong>شركة النقل أرسلت/حدثت مبلغ الشحن.</strong><div class="small text-muted">يمكنك قبول حجز المساحة أو رفضه ليقوم الناقل بتحديث السعر.</div></div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button form="acceptCarrierQuote" class="btn btn-success btn-sm">موافقة</button>
+              <button form="rejectCarrierQuote" class="btn btn-outline-danger btn-sm">رفض</button>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="col-md-3"><label class="form-label">رقم بوليصة الشحن</label><input name="bol_no" data-carrier-field="1" class="form-control" value="{{ shipment.bol_no if shipment else '' }}" {% if locked_by_carrier %}disabled{% endif %}></div>
+        <div class="col-md-3"><label class="form-label">موعد الشحن</label><input type="date" name="ship_date" data-carrier-field="1" class="form-control" value="{{ shipment.ship_date.strftime('%Y-%m-%d') if shipment and shipment.ship_date else '' }}" {% if locked_by_carrier %}disabled{% endif %}></div>
+        <div class="col-md-3"><label class="form-label">موعد الوصول</label><input type="date" name="arrival_date" data-carrier-field="1" class="form-control" value="{{ shipment.arrival_date.strftime('%Y-%m-%d') if shipment and shipment.arrival_date else '' }}" {% if locked_by_carrier %}disabled{% endif %}></div>
+        <div class="col-md-3"><label class="form-label">دفع الشحن من قبل</label><input name="shipping_paid_by" data-carrier-field="1" class="form-control" value="{{ shipment.shipping_paid_by if shipment else '' }}" {% if locked_by_carrier %}disabled{% endif %}></div>
+        <div class="col-md-3"><label class="form-label">حالة الطلبية</label><select name="status" data-carrier-field="1" class="form-select" {% if locked_by_carrier %}disabled{% endif %}><option value="NEW" {% if shipment and shipment.status=='NEW' %}selected{% endif %}>طلبية جديدة</option><option value="IN_TRANSIT" {% if shipment and shipment.status=='IN_TRANSIT' %}selected{% endif %}>قيد الشحن</option><option value="RECEIVED" {% if shipment and shipment.status=='RECEIVED' %}selected{% endif %}>مستلمة</option></select></div>
+        <div class="col-md-3"><label class="form-label">تتبع MSC</label><input name="msc_tracking" class="form-control" placeholder="رابط أو رقم تتبع" value="{{ shipment.msc_tracking if shipment else '' }}"></div>
+        <div class="col-md-6"><label class="form-label">تفاصيل الشحن</label><textarea name="shipping_details" data-carrier-field="1" class="form-control" rows="3" {% if locked_by_carrier %}disabled{% endif %}>{{ shipment.shipping_details if shipment else '' }}</textarea></div>
+        <div class="col-md-6"><label class="form-label">تفاصيل أخرى</label><textarea name="other_details" class="form-control" rows="3">{{ shipment.other_details if shipment else '' }}</textarea></div>
+
+        <div class="col-12"><h6 class="section-heading">بيانات التخليص</h6></div>
+        <div class="col-md-4"><label class="form-label">شركة التخليص</label><select name="clearer_id" class="form-select"><option value="">بدون مخلص</option>{% for c in clearers %}<option value="{{ c.id }}" {% if shipment and shipment.clearer_id==c.id %}selected{% endif %}>{{ c.company_name or c.username }}</option>{% endfor %}</select><div class="form-text">لا يظهر هنا إلا المخلصين الموجودين في مفضلتك. <a href="{{ url_for('service_clearers') }}">ابحث وأضف مخلص للمفضلة</a>.</div></div>
+        <div class="col-md-4"><label class="form-label">مبلغ التخليص</label><div class="readonly-field">{{ money(shipment.clearance_cost) if shipment and shipment.clearance_cost is not none else 'يحدده المخلص لاحقاً' }}</div></div>
+        <div class="col-md-4"><label class="form-label">حالة التخليص</label><div class="readonly-field">{{ clearance_status_label(shipment.clearance_status) if shipment else 'بانتظار اختيار/تحديث المخلص' }}</div></div>
+        <div class="col-md-4"><label class="form-label">حالة عرض التخليص</label><div class="readonly-field">{{ quote_status_label(shipment.clearance_quote_status) if shipment and shipment.clearer_id else 'بدون مخلص' }}</div></div>
+        {% if shipment and shipment.clearer_id and shipment.clearance_quote_status == 'PROPOSED' %}
+        <div class="col-12"><div class="quote-action-box"><div><strong>المخلص أرسل/حدث مبلغ التخليص.</strong><div class="small text-muted">يمكنك قبول المبلغ أو رفضه ليقوم المخلص بإرسال سعر جديد.</div></div><div class="d-flex gap-2 flex-wrap"><button form="acceptClearanceQuote" class="btn btn-success btn-sm">موافقة</button><button form="rejectClearanceQuote" class="btn btn-outline-danger btn-sm">رفض</button></div></div></div>
+        {% endif %}
+        <div class="col-12"><div class="alert alert-light border mb-0 small">مبلغ التخليص وحالة التخليص يتم تحديثها من حساب المخلص فقط، ومبلغ النقل وبيانات الشحن يتم تحديثها من حساب شركة النقل عند اختيارها.</div></div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-secondary" href="{{ url_for('shipments_list') }}">رجوع</a><button class="btn btn-primary" type="submit">حفظ</button></div>
+    </form>
+    {% if shipment %}
+    <form id="acceptClearanceQuote" method="post" action="{{ url_for('clearance_quote_decision', shipment_id=shipment.id, decision='accept') }}"></form>
+    <form id="rejectClearanceQuote" method="post" action="{{ url_for('clearance_quote_decision', shipment_id=shipment.id, decision='reject') }}"></form>
+    <form id="acceptCarrierQuote" method="post" action="{{ url_for('carrier_quote_decision', shipment_id=shipment.id, decision='accept') }}"></form>
+    <form id="rejectCarrierQuote" method="post" action="{{ url_for('carrier_quote_decision', shipment_id=shipment.id, decision='reject') }}"></form>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function(){
+  const carrierSelect = document.getElementById('carrierSelect');
+  const fields = document.querySelectorAll('[data-carrier-field="1"]');
+  const lockedByServer = {{ 'true' if locked_by_carrier else 'false' }};
+  function applyLock(){
+    if(lockedByServer) return;
+    const hasCarrier = carrierSelect && carrierSelect.value;
+    fields.forEach(el => { el.disabled = !!hasCarrier; });
+  }
+  if(carrierSelect){ carrierSelect.addEventListener('change', applyLock); applyLock(); }
+})();
+</script>
+{% endblock %}

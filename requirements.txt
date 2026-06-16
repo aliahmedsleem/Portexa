@@ -1,0 +1,8 @@
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+reportlab==4.2.2
+arabic-reshaper==3.0.0
+python-bidi==0.4.2
+flask-login
+werkzeug
+requests

@@ -1,0 +1,72 @@
+{% extends "admin_base.html" %}
+{% block title %}تخصيص تقارير المستخدمين{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0">تخصيص تقارير</h4>
+    <div class="text-muted small">حدد الأعمدة التي تظهر في تاب التقارير لكل مستخدم. المستخدم لن يرى غير الأعمدة المحددة له.</div>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">اختيار المستخدم</h6>
+        <form method="get">
+          <label class="form-label">المستخدم</label>
+          <select class="form-select" name="user_id" onchange="this.form.submit()">
+            {% for u in users %}
+              <option value="{{ u.id }}" {% if selected_user and selected_user.id == u.id %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+          </select>
+        </form>
+
+        {% if selected_user %}
+        <div class="mt-3 p-3 rounded bg-light border">
+          <div class="small text-muted">المستخدم المحدد</div>
+          <div class="fw-bold">{{ selected_user.username }}</div>
+          <div class="small mt-1">الحالة: {{ selected_user.status_text() }}</div>
+        </div>
+        {% else %}
+        <div class="alert alert-warning mt-3 mb-0">لا يوجد تاجر حالياً.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">حقول التقرير</h6>
+
+        {% if selected_user %}
+        <form method="post">
+          <input type="hidden" name="user_id" value="{{ selected_user.id }}">
+          <div class="row g-2">
+            {% for field in report_fields %}
+            <div class="col-md-6">
+              <label class="report-field-option">
+                <input class="form-check-input" type="checkbox" name="fields" value="{{ field.key }}" {% if field.key in selected_fields %}checked{% endif %}>
+                <span>{{ field.label }}</span>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 flex-wrap mt-4">
+            <button class="btn btn-primary">حفظ التخصيص</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
+          </div>
+        </form>
+        {% else %}
+        <div class="text-muted">أنشئ تاجر أولاً حتى تستطيع تخصيص تقريره.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

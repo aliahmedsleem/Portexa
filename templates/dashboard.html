@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h4 class="mb-0">لوحة التحكم</h4>
+    <div class="text-muted small">ملخص سريع لحالة الطلبات والتنبيهات</div>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('shipments_new') }}">+ إضافة شحنة جديدة</a>
+</div>
+
+<div class="row g-3 mb-1">
+  <div class="col-md-4">
+    <a class="text-decoration-none" href="{{ url_for('shipments_list', arrival_filter='3days') }}">
+      <div class="card shadow-sm border-0 arrival-stat-card urgent h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="text-muted">الشحنات القريبة خلال 3 أيام</div>
+              <div class="display-6 fw-bold">{{ stats.arrivals_three_days }}</div>
+            </div>
+            <span class="arrival-card-icon">⏰</span>
+          </div>
+          <div class="small mt-2">اضغط لعرض هذه الشحنات فقط</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-4">
+    <a class="text-decoration-none" href="{{ url_for('shipments_list', arrival_filter='week') }}">
+      <div class="card shadow-sm border-0 arrival-stat-card week h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="text-muted">الشحنات القريبة هذا الأسبوع</div>
+              <div class="display-6 fw-bold">{{ stats.arrivals_week }}</div>
+            </div>
+            <span class="arrival-card-icon">📅</span>
+          </div>
+          <div class="small mt-2">اضغط لعرض هذه الشحنات فقط</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-4">
+    <a class="text-decoration-none" href="{{ url_for('shipments_list', arrival_filter='month') }}">
+      <div class="card shadow-sm border-0 arrival-stat-card month h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="text-muted">الشحنات القريبة هذا الشهر</div>
+              <div class="display-6 fw-bold">{{ stats.arrivals_month }}</div>
+            </div>
+            <span class="arrival-card-icon">🗓️</span>
+          </div>
+          <div class="small mt-2">اضغط لعرض هذه الشحنات فقط</div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">عدد الطلبات الكلي</div>
+        <div class="display-6 fw-bold">{{ stats.total_orders }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">عدد السيارات الكلي</div>
+        <div class="display-6 fw-bold">{{ stats.total_cars }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">عدد الحاويات الكلي</div>
+        <div class="display-6 fw-bold">{{ stats.total_containers }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">عدد الحاويات المستلمة</div>
+        <div class="display-6 fw-bold text-success">{{ stats.containers_received }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">الحاويات غير المستلمة</div>
+        <div class="display-6 fw-bold text-danger">{{ stats.containers_not_received }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">الحاويات في طريق الشحن</div>
+        <div class="display-6 fw-bold text-warning">{{ stats.containers_in_transit }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">السيارات المستلمة</div>
+        <div class="display-6 fw-bold text-success">{{ stats.cars_received }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">السيارات غير المستلمة</div>
+        <div class="display-6 fw-bold text-danger">{{ stats.cars_not_received }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted">السيارات في طريق الشحن</div>
+        <div class="display-6 fw-bold text-warning">{{ stats.cars_in_transit }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

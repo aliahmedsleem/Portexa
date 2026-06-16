@@ -1,0 +1,25 @@
+{% extends "admin_base.html" %}
+{% block title %}إدارة الإعلانات{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+  <div><h4 class="mb-1">إدارة الإعلانات</h4><div class="text-muted small">نشر صور إعلانية بأسفل النظام، مع مدة ظهور وأرشفة تلقائية بعد الانتهاء.</div></div>
+  <a class="btn btn-primary" href="{{ url_for('admin_ads_new') }}">+ إعلان جديد</a>
+</div>
+<div class="admin-tabs mb-3"><a class="{{ 'active' if status=='ACTIVE' else '' }}" href="{{ url_for('admin_ads', status='ACTIVE') }}">الإعلانات الفعالة</a><a class="{{ 'active' if status=='ARCHIVED' else '' }}" href="{{ url_for('admin_ads', status='ARCHIVED') }}">الأرشيف</a></div>
+<div class="row g-3">
+{% for ad in ads %}
+  <div class="col-lg-4 col-md-6"><div class="card border-0 shadow-sm ad-admin-card h-100">
+    <img src="{{ url_for('static', filename=ad.image_path) }}" class="ad-admin-img" alt="{{ ad.title }}">
+    <div class="card-body">
+      <div class="d-flex justify-content-between gap-2"><h6 class="mb-1">{{ ad.title }}</h6><span class="badge {{ 'text-bg-success' if ad.status=='ACTIVE' else 'text-bg-secondary' }}">{{ 'فعال' if ad.status=='ACTIVE' else 'مؤرشف' }}</span></div>
+      <div class="small text-muted mt-2">المعلن: {{ ad.advertiser.company_name or ad.advertiser.username if ad.advertiser else '-' }}</div>
+      <div class="small text-muted">مخصص إلى: {{ ad.target_user.company_name or ad.target_user.username if ad.target_user else 'كل المستخدمين' }}</div>
+      <div class="small text-muted">المبلغ: {{ ad.amount or 0 }} {{ ad.currency }}</div>
+      <div class="small text-muted">المدة: {{ ad.duration_days }} يوم | المتبقي: {{ ad.remaining_days() }} يوم</div>
+      <div class="small text-muted">أنشئ بتاريخ: {{ ad.created_at.strftime('%Y-%m-%d') }}</div>
+      <div class="d-flex gap-2 mt-3"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_ads_edit', ad_id=ad.id) }}">تعديل</a>{% if ad.status=='ACTIVE' %}<form method="post" action="{{ url_for('admin_ads_archive', ad_id=ad.id) }}"><button class="btn btn-sm btn-outline-secondary">أرشفة</button></form>{% endif %}</div>
+    </div>
+  </div></div>
+{% else %}<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">لا توجد إعلانات في هذا القسم.</div></div></div>{% endfor %}
+</div>
+{% endblock %}

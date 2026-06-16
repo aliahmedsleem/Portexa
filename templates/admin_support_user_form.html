@@ -1,0 +1,17 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if user %}تعديل موظف دعم{% else %}إنشاء موظف دعم{% endif %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-4">
+  <div><h4 class="mb-1">{% if user %}تعديل موظف دعم{% else %}إنشاء موظف دعم{% endif %}</h4><div class="text-muted small">هذا الحساب يستخدم للدردشة وإغلاق التكتات فقط.</div></div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('admin_support_users') }}">إغلاق</a>
+</div>
+<div class="admin-tabs mb-3"><a href="{{ url_for('admin_users') }}">حسابات التجار</a><a href="{{ url_for('admin_advertisers') }}">حسابات المعلنين</a><a class="active" href="{{ url_for('admin_support_users') }}">مستخدمي الدعم الفني</a></div>
+<form method="post" class="card border-0 shadow-sm"><div class="card-body"><div class="row g-3">
+<div class="col-md-6"><label class="form-label">اسم المستخدم</label><input class="form-control" name="username" required value="{{ user.username if user else '' }}"></div>
+<div class="col-md-6"><label class="form-label">{% if user %}كلمة مرور جديدة اختياري{% else %}كلمة المرور{% endif %}</label><input class="form-control" type="password" name="{{ 'new_password' if user else 'password' }}" {% if not user %}required{% endif %}></div>
+<div class="col-md-6"><label class="form-label">اسم الموظف</label><input class="form-control" name="owner_name" value="{{ user.owner_name if user else '' }}"></div>
+<div class="col-md-6"><label class="form-label">رقم الهاتف</label><input class="form-control" name="phone" value="{{ user.phone if user else '' }}"></div>
+<div class="col-md-12"><label class="form-label">البريد الإلكتروني</label><input class="form-control" type="email" name="email" value="{{ user.email if user else '' }}"></div>
+{% if user %}<div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="active" {% if user.is_active %}checked{% endif %}><label class="form-check-label" for="active">الحساب فعال</label></div></div>{% endif %}
+</div></div><div class="card-footer bg-white d-flex gap-2 justify-content-end"><a class="btn btn-outline-secondary" href="{{ url_for('admin_support_users') }}">إغلاق</a><button class="btn btn-primary">حفظ</button></div></form>
+{% endblock %}

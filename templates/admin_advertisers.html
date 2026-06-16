@@ -1,0 +1,16 @@
+{% extends "admin_base.html" %}
+{% block title %}حسابات المعلنين{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+  <div><h4 class="mb-1">حسابات المعلنين</h4><div class="text-muted small">حسابات خاصة لرفع الإعلانات حسب النوع: تاجر، شركة شحن، مخلص.</div></div>
+  <a class="btn btn-primary" href="{{ url_for('admin_advertisers_new') }}">+ إنشاء حساب معلن</a>
+</div>
+<div class="card border-0 shadow-sm"><div class="card-body table-responsive">
+<table class="table align-middle">
+<thead class="table-light"><tr><th>#</th><th>اسم المستخدم</th><th>نوع الحساب</th><th>الشركة</th><th>المالك</th><th>الهاتف</th><th>البريد</th><th>الحالة</th><th class="text-end">إجراءات</th></tr></thead>
+<tbody>
+{% for u in advertisers %}
+<tr><td>{{ u.id }}</td><td class="fw-bold">{{ u.username }}</td><td><span class="badge text-bg-info">{{ advertiser_type_label(u.advertiser_type) }}</span></td><td>{{ u.company_name or '-' }}</td><td>{{ u.owner_name or '-' }}</td><td>{{ u.phone or '-' }}</td><td>{{ u.email or '-' }}</td><td>{% if u.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-danger">متوقف</span>{% endif %}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_advertisers_edit', user_id=u.id) }}">عرض/تعديل</a></td></tr>
+{% else %}<tr><td colspan="9" class="text-center text-muted py-4">لا توجد حسابات معلنين.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

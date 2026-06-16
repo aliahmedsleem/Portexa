@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h5 class="mb-2">إضافة بلد</h5>
+        <form method="post">
+          <label class="form-label">اسم البلد</label>
+          <input name="name" class="form-control" placeholder="مثال: تركيا">
+          <button class="btn btn-primary mt-3 w-100">حفظ</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h5 class="mb-2">عرض البلدان</h5>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead class="table-light">
+              <tr><th>#</th><th>الاسم</th><th class="text-end">إجراءات</th></tr>
+            </thead>
+            <tbody>
+              {% for c in countries %}
+              <tr>
+                <td class="fw-bold">{{ c.id }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('update_country', country_id=c.id) }}" class="d-flex gap-2">
+                    <input name="name" class="form-control" value="{{ c.name }}">
+                    <button class="btn btn-outline-primary">تعديل</button>
+                  </form>
+                </td>
+                <td class="text-end">
+                  <form method="post" action="{{ url_for('delete_country', country_id=c.id) }}"
+                        onsubmit="return confirm('حذف البلد؟');">
+                    <button class="btn btn-outline-danger">حذف</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if countries|length == 0 %}
+              <tr><td colspan="3" class="text-center text-muted py-4">لا توجد بلدان.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

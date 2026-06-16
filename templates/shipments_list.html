@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h4 class="mb-0">إدارة الشحنات</h4>
+    <div class="text-muted small">عرض وإضافة وتعديل الشحنات</div>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('shipments_new') }}">+ إضافة شحنة جديدة</a>
+</div>
+
+{% if arrival_filter %}
+<div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2 shadow-sm border-0">
+  <div>
+    <strong>فلترة مواعيد الوصول:</strong>
+    {% if arrival_filter == '3days' %}الشحنات القريبة خلال 3 أيام{% elif arrival_filter == 'week' %}الشحنات القريبة هذا الأسبوع{% elif arrival_filter == 'month' %}الشحنات القريبة هذا الشهر{% endif %}
+  </div>
+  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('shipments_list') }}">عرض كل الشحنات</a>
+</div>
+{% endif %}
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <form method="get" action="{{ url_for('shipments_list') }}" class="row g-2 align-items-center">
+      {% if arrival_filter %}<input type="hidden" name="arrival_filter" value="{{ arrival_filter }}">{% endif %}
+      <div class="col-12 col-lg-9">
+        <input
+          type="search"
+          name="q"
+          value="{{ search_query or '' }}"
+          class="form-control"
+          placeholder="بحث عام: رقم الشحنة، المعمل، البلد، الفاتورة، البوليصة، الحالة، التواريخ، الملاحظات..."
+          autocomplete="off">
+      </div>
+      <div class="col-12 col-lg-3 d-flex gap-2">
+        <button class="btn btn-primary flex-fill" type="submit">بحث</button>
+        {% if search_query %}
+        <a class="btn btn-outline-secondary flex-fill" href="{{ url_for('shipments_list', arrival_filter=arrival_filter) if arrival_filter else url_for('shipments_list') }}">إلغاء</a>
+        {% endif %}
+      </div>
+    </form>
+    {% if search_query %}
+    <div class="small text-muted mt-2">نتائج البحث عن: <span class="fw-bold">{{ search_query }}</span> — العدد: {{ shipments|length }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>المعمل</th>
+          <th>رقم الفاتورة</th>
+          <th>رقم البوليصة</th>
+          <th>موعد الوصول</th>
+          <th>شركة النقل</th>
+          <th>المخلص</th>
+          <th>حالة التخليص</th>
+          <th>الحالة</th>
+          <th class="text-end">الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in shipments %}
+        <tr>
+          <td class="fw-bold">#{{ s.id }}</td>
+          <td>{{ s.factory.name }}</td>
+          <td>{{ s.invoice_no or "-" }}</td>
+          <td>{{ s.bol_no or "-" }}</td>
+          <td>{{ s.arrival_date.strftime('%Y-%m-%d') if s.arrival_date else '-' }}</td>
+          <td>{{ s.carrier.company_name if s.carrier else '-' }}</td>
+          <td>{{ s.clearer.company_name if s.clearer else '-' }}</td>
+          <td>{% if s.clearer %}<span class="badge text-bg-light border">{{ clearance_status_label(s.clearance_status) }}</span>{% else %}-{% endif %}</td>
+
+          {% set st = status_badge(s.status) %}
+          <td><span class="badge text-bg-{{ st[1] }}">{{ st[0] }}</span></td>
+
+          <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-info" onclick="openDetails({{ s.id }})">
+              عرض
+            </button>
+
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('shipments_edit', shipment_id=s.id) }}">تعديل</a>
+
+            {% if s.clearer and s.clearance_status == 'DONE' %}<a class="btn btn-sm btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CLEARER') }}">تقييم المخلص</a>{% endif %}
+            {% if s.carrier and s.status == 'RECEIVED' %}<a class="btn btn-sm btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CARRIER') }}">تقييم النقل</a>{% endif %}
+
+            <form method="post" action="{{ url_for('shipments_delete', shipment_id=s.id) }}"
+                  style="display:inline-block" onsubmit="return confirm('تأكيد حذف الشحنة؟');">
+              <button class="btn btn-sm btn-outline-danger" type="submit">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% if shipments|length == 0 %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-4">لا توجد نتائج مطابقة للبحث.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ✅ Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0">تفاصيل الشحنة</h5>
+          <div class="text-muted small" id="d_header_sub"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="detailsLoading" class="text-muted">... جاري تحميل التفاصيل</div>
+        <div id="detailsError" class="alert alert-danger d-none"></div>
+
+        <div id="detailsContent" class="d-none">
+
+          <div class="p-3 rounded bg-light border mb-3 d-flex flex-wrap align-items-center gap-2">
+            <span class="badge rounded-pill text-bg-secondary" id="d_id_badge">#-</span>
+            <span class="badge rounded-pill" id="d_status_badge">-</span>
+            <span class="text-muted">|</span>
+            <span class="small"><span class="fw-bold">المعمل:</span> <span id="d_factory"></span></span>
+            <span class="text-muted">|</span>
+            <span class="small"><span class="fw-bold">نوع الطلبية:</span> <span id="d_cargo_type"></span></span>
+            <span class="text-muted">|</span>
+            <span class="small"><span class="fw-bold">نوع الشحن:</span> <span id="d_shipping_mode"></span></span>
+          </div>
+
+          <div class="row g-3">
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">بيانات الفاتورة</h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                      <tbody>
+                        <tr><td class="text-muted" style="width:40%">رقم الفاتورة</td><td id="d_invoice_no">-</td></tr>
+                        <tr><td class="text-muted">تاريخ الفاتورة</td><td id="d_invoice_date">-</td></tr>
+                        <tr><td class="text-muted">مبلغ الفاتورة</td><td id="d_invoice_amount">-</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">بيانات الشحن</h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                      <tbody>
+                        <tr><td class="text-muted" style="width:40%">رقم البوليصة</td><td id="d_bol_no">-</td></tr>
+                        <tr><td class="text-muted">عدد الحاويات</td><td id="d_containers_count">-</td></tr>
+                        <tr><td class="text-muted">مبلغ الشحن</td><td id="d_shipping_cost">-</td></tr>
+                        <tr><td class="text-muted">دفع الشحن من قبل</td><td id="d_shipping_paid_by">-</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">التواريخ والوجهة</h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                      <tbody>
+                        <tr><td class="text-muted" style="width:40%">البلد</td><td id="d_country">-</td></tr>
+                        <tr><td class="text-muted">موعد الشحن</td><td id="d_ship_date">-</td></tr>
+                        <tr><td class="text-muted">موعد الوصول</td><td id="d_arrival_date">-</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">الخدمات المرتبطة</h6>
+                  <div class="table-responsive"><table class="table table-sm mb-0"><tbody>
+                    <tr><td class="text-muted" style="width:40%">شركة النقل</td><td id="d_carrier">-</td></tr>
+                    <tr><td class="text-muted">المخلص</td><td id="d_clearer">-</td></tr>
+                    <tr><td class="text-muted">مبلغ التخليص</td><td id="d_clearance_cost">-</td></tr>
+                    <tr><td class="text-muted">حالة التخليص</td><td id="d_clearance_status">-</td></tr>
+                  </tbody></table></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-2">تتبع (SeaRates / MSC)</h6>
+                  <div class="text-muted small mb-2">سيتم جلبه تلقائياً حسب رقم البوليصة (B/L)</div>
+                  <div class="border rounded p-2 bg-light" style="min-height:150px; white-space:pre-wrap" id="d_msc_tracking">-</div>
+                  <div class="mt-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" type="button" onclick="refreshTracking()">تحديث الآن</button>
+                    <span class="text-muted small" id="d_track_hint"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">تفاصيل أخرى</h6>
+                  <div class="border rounded p-2 bg-light" style="min-height:120px; white-space:pre-wrap" id="d_other_details">-</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">تفاصيل الشحن</h6>
+                  <div class="border rounded p-2 bg-light" style="min-height:120px; white-space:pre-wrap" id="d_shipping_details">-</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Keep last opened shipment data
+  let _lastBL = "";
+  let _lastSeal = "MSCU";
+
+  function badgeStatusClass(statusText){
+    if(statusText.includes("جديدة")) return "text-bg-danger";
+    if(statusText.includes("قيد")) return "text-bg-warning";
+    if(statusText.includes("مستلمة")) return "text-bg-success";
+    return "text-bg-secondary";
+  }
+
+  function setText(id, value){ document.getElementById(id).innerText = value || "-"; }
+
+  async function loadTracking(bl, forceUpdate=false){
+    const box = document.getElementById("d_msc_tracking");
+    const hint = document.getElementById("d_track_hint");
+    if(!bl){
+      box.innerText = "-";
+      hint.innerText = "";
+      return;
+    }
+
+    box.innerText = "جاري جلب التتبع حسب رقم البوليصة...";
+    hint.innerText = "";
+
+    const url = `/api/tracking/searates?bl=${encodeURIComponent(bl)}&sealine=${encodeURIComponent(_lastSeal)}${forceUpdate ? "&force_update=1" : ""}`;
+
+    try{
+      const res = await fetch(url, {cache:"no-store"});
+      const t = await res.json();
+
+      if(!t.ok){
+        box.innerText = "تعذر جلب التتبع: " + (t.error || "");
+        hint.innerText = t.details ? ("تفاصيل: " + t.details) : "";
+        return;
+      }
+
+      let text = "";
+      text += `المزوّد: ${t.provider}\n`;
+      text += `الخط: ${t.carrier || "MSC"} (${t.sealine || ""})\n`;
+      text += `B/L: ${bl}\n`;
+      if (t.container) text += `Container: ${t.container}\n`;
+      text += `الحالة: ${t.status || "-"}\n`;
+      text += `ETA: ${t.eta || "-"}\n\n`;
+
+      if(Array.isArray(t.events) && t.events.length){
+        text += "الأحداث:\n";
+        t.events.slice(0, 20).forEach(ev => {
+          text += `- ${ev.date || ""} | ${ev.location || ""} | ${ev.description || ""}\n`;
+        });
+      }else{
+        text += "لا توجد أحداث حالياً.";
+      }
+
+      box.innerText = text;
+
+    }catch(e){
+      box.innerText = "خطأ اتصال أثناء جلب التتبع.";
+    }
+  }
+
+  function refreshTracking(){
+    if(_lastBL) loadTracking(_lastBL, true);
+  }
+
+  async function openDetails(shipmentId){
+    // ensure bootstrap exists
+    if(typeof bootstrap === "undefined"){
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js";
+      s.onload = () => openDetails(shipmentId);
+      document.head.appendChild(s);
+      return;
+    }
+
+    const modalEl = document.getElementById("detailsModal");
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    document.getElementById("detailsError").classList.add("d-none");
+    document.getElementById("detailsLoading").classList.remove("d-none");
+    document.getElementById("detailsContent").classList.add("d-none");
+
+    try{
+      const res = await fetch(`/shipments/${shipmentId}/details`, {cache:"no-store"});
+      if(!res.ok){
+        document.getElementById("detailsLoading").classList.add("d-none");
+        const e = document.getElementById("detailsError");
+        e.classList.remove("d-none");
+        e.innerText = `تعذر جلب التفاصيل (HTTP ${res.status})`;
+        return;
+      }
+
+      const d = await res.json();
+
+      document.getElementById("d_header_sub").innerText = `#${d.id} — ${d.status}`;
+      document.getElementById("d_id_badge").innerText = "#" + d.id;
+
+      const stBadge = document.getElementById("d_status_badge");
+      stBadge.className = "badge rounded-pill " + badgeStatusClass(d.status);
+      stBadge.innerText = d.status;
+
+      setText("d_factory", d.factory);
+      setText("d_cargo_type", d.cargo_type);
+      setText("d_shipping_mode", d.shipping_mode);
+
+      setText("d_invoice_no", d.invoice_no);
+      setText("d_invoice_date", d.invoice_date);
+      setText("d_invoice_amount", (d.invoice_amount || "-") + " " + (d.invoice_currency || ""));
+
+      setText("d_bol_no", d.bol_no);
+      setText("d_containers_count", (d.containers_count ?? "-"));
+      setText("d_shipping_cost", d.shipping_cost);
+      setText("d_shipping_paid_by", d.shipping_paid_by);
+      setText("d_carrier", d.carrier);
+      setText("d_clearer", d.clearer);
+      setText("d_clearance_cost", d.clearance_cost);
+      setText("d_clearance_status", d.clearance_status);
+
+      setText("d_country", d.country);
+      setText("d_ship_date", d.ship_date);
+      setText("d_arrival_date", d.arrival_date);
+
+      setText("d_other_details", d.other_details);
+      setText("d_shipping_details", d.shipping_details);
+
+      document.getElementById("detailsLoading").classList.add("d-none");
+      document.getElementById("detailsContent").classList.remove("d-none");
+
+      // ✅ Auto Tracking by BL
+      _lastBL = (d.bol_no || "").trim();
+      _lastSeal = "MSCU";
+      await loadTracking(_lastBL, false);
+
+    }catch(err){
+      document.getElementById("detailsLoading").classList.add("d-none");
+      const e = document.getElementById("detailsError");
+      e.classList.remove("d-none");
+      e.innerText = "خطأ بالاتصال أو JavaScript.";
+    }
+  }
+</script>
+
+{% endblock %}

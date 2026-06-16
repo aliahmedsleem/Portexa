@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height:75vh;">
+  <div class="card shadow-sm border-0" style="max-width:420px; width:100%;">
+    <div class="card-body p-4">
+
+      <div class="text-center mb-3">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height:70px;">
+      </div>
+
+      <h5 class="text-center mb-4">Portexa Logistics Platform</h5>
+
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">اسم المستخدم</label>
+          <input name="username" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">كلمة السر</label>
+          <input name="password" type="password" class="form-control" required>
+        </div>
+        <button class="btn btn-primary w-100">تسجيل الدخول</button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<div class="text-center text-muted small mt-4">
+© 2026 PORTEXA. All Rights Reserved.</div>
+{% endblock %}

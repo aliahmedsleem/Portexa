@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Portexa Logistics Platform{% endblock %}</title>
+
+  <!-- Bootstrap 5 RTL -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-body">
+
+{% if current_user.is_authenticated %}
+<div class="app-shell">
+  <aside class="app-sidebar d-none d-lg-flex" aria-label="القائمة الجانبية">
+    <div class="sidebar-header">
+      <a class="sidebar-brand" href="{{ url_for('dashboard') }}">
+        <span class="brand-icon">ط</span>
+        <span class="brand-text">Portexa - بورتيكسا</span>
+      </a>
+      <span class="sidebar-subtitle">لوحة التحكم</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+        <span class="link-icon">▣</span>
+        <span>الصفحة الرئيسية</span>
+      </a>
+
+      <a class="sidebar-link {% if request.endpoint in ['shipments_list', 'shipments_new', 'shipments_edit'] %}active{% endif %}" href="{{ url_for('shipments_list') }}">
+        <span class="link-icon">▦</span>
+        <span>إدارة الشحنات</span>
+      </a>
+
+      <a class="sidebar-link {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">
+        <span class="link-icon">▤</span>
+        <span>التقارير</span>
+      </a>
+
+      <a class="sidebar-link {% if request.endpoint == 'service_carriers' %}active{% endif %}" href="{{ url_for('service_carriers') }}">
+        <span class="link-icon">▧</span>
+        <span>خدمات النقل</span>
+      </a>
+
+      <a class="sidebar-link {% if request.endpoint == 'service_clearers' %}active{% endif %}" href="{{ url_for('service_clearers') }}">
+        <span class="link-icon">◇</span>
+        <span>خدمات التخليص</span>
+      </a>
+
+      <a class="sidebar-link {% if request.endpoint in ['notifications_list'] %}active{% endif %}" href="{{ url_for('notifications_list') }}">
+        <span class="link-icon">●</span>
+        <span>الإشعارات</span>
+        {% if notification_count() %}<span class="notification-badge">{{ notification_count() }}</span>{% endif %}
+      </a>
+
+      <a class="sidebar-link {% if request.endpoint in ['tickets_list', 'tickets_new', 'ticket_view'] %}active{% endif %}" href="{{ url_for('tickets_list') }}">
+        <span class="link-icon">☏</span>
+        <span>الدعم الفني</span>
+      </a>
+
+      <div class="sidebar-section-title">الإدارة</div>
+
+      <a class="sidebar-link {% if request.endpoint == 'manage_factories' %}active{% endif %}" href="{{ url_for('manage_factories') }}">
+        <span class="link-icon">◆</span>
+        <span>إدارة المعامل</span>
+      </a>
+
+      <a class="sidebar-link {% if request.endpoint == 'manage_countries' %}active{% endif %}" href="{{ url_for('manage_countries') }}">
+        <span class="link-icon">◉</span>
+        <span>إدارة البلدان</span>
+      </a>
+
+      {% if current_user.is_admin %}
+      <a class="sidebar-link {% if request.endpoint in ['admin_dashboard', 'admin_users', 'admin_users_new', 'admin_users_edit'] %}active{% endif %}" href="{{ url_for('admin_users') }}">
+        <span class="link-icon">★</span>
+        <span>إدارة المستخدمين</span>
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">{{ current_user.username[:1] }}</div>
+        <div class="user-info">
+          <span class="user-label">مرحباً</span>
+          <strong>{{ current_user.username }}</strong>
+        </div>
+      </div>
+      <a class="btn btn-logout w-100" href="{{ url_for('logout') }}">تسجيل الخروج</a>
+    </div>
+  </aside>
+
+  <div class="mobile-topbar d-lg-none">
+    <button class="sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-label="فتح القائمة">
+      ☰
+    </button>
+    <a class="mobile-brand" href="{{ url_for('dashboard') }}">Portexa Logistics Platform</a>
+  </div>
+
+  <div class="offcanvas offcanvas-end mobile-sidebar" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="mobileSidebarLabel">القائمة الرئيسية</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق"></button>
+    </div>
+    <div class="offcanvas-body">
+      <nav class="sidebar-nav mobile-nav">
+        <a class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">الصفحة الرئيسية</a>
+        <a class="sidebar-link {% if request.endpoint in ['shipments_list', 'shipments_new', 'shipments_edit'] %}active{% endif %}" href="{{ url_for('shipments_list') }}">إدارة الشحنات</a>
+        <a class="sidebar-link {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">التقارير</a>
+        <a class="sidebar-link {% if request.endpoint == 'service_carriers' %}active{% endif %}" href="{{ url_for('service_carriers') }}">خدمات النقل</a>
+        <a class="sidebar-link {% if request.endpoint == 'service_clearers' %}active{% endif %}" href="{{ url_for('service_clearers') }}">خدمات التخليص</a>
+        <a class="sidebar-link {% if request.endpoint == 'notifications_list' %}active{% endif %}" href="{{ url_for('notifications_list') }}">الإشعارات{% if notification_count() %} ({{ notification_count() }}){% endif %}</a>
+        <a class="sidebar-link {% if request.endpoint in ['tickets_list', 'tickets_new', 'ticket_view'] %}active{% endif %}" href="{{ url_for('tickets_list') }}">الدعم الفني</a>
+        <div class="sidebar-section-title">الإدارة</div>
+        <a class="sidebar-link {% if request.endpoint == 'manage_factories' %}active{% endif %}" href="{{ url_for('manage_factories') }}">إدارة المعامل</a>
+        <a class="sidebar-link {% if request.endpoint == 'manage_countries' %}active{% endif %}" href="{{ url_for('manage_countries') }}">إدارة البلدان</a>
+        {% if current_user.is_admin %}
+        <a class="sidebar-link {% if request.endpoint in ['admin_dashboard', 'admin_users', 'admin_users_new', 'admin_users_edit'] %}active{% endif %}" href="{{ url_for('admin_users') }}">إدارة المستخدمين</a>
+        {% endif %}
+      </nav>
+      <div class="sidebar-footer mt-4">
+        <div class="user-card">
+          <div class="user-avatar">{{ current_user.username[:1] }}</div>
+          <div class="user-info">
+            <span class="user-label">مرحباً</span>
+            <strong>{{ current_user.username }}</strong>
+          </div>
+        </div>
+        <a class="btn btn-logout w-100" href="{{ url_for('logout') }}">تسجيل الخروج</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-content">
+    <main class="container-fluid page-container py-4">
+{% else %}
+<main class="container auth-container my-4">
+{% endif %}
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }} alert-dismissible fade show shadow-sm" role="alert">
+              {{ msg }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% if current_user.is_authenticated and not current_user.is_admin %}
+      {% set mini_notifications = latest_notifications(3) %}
+      {% if mini_notifications %}
+      <div class="flash-holder notification-holder" aria-live="polite" aria-atomic="true">
+        {% for n in mini_notifications if not n.is_read %}
+        <a class="flash-toast flash-info show notification-toast-link" href="{{ url_for('notification_open', notification_id=n.id) }}">
+          <div class="flash-toast-body"><strong>{{ n.title }}</strong><br><span>{{ n.body or '' }}</span></div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endif %}
+
+      {% block content %}{% endblock %}
+
+{% if current_user.is_authenticated %}
+    </main>
+
+    {% set ads = active_ads() %}
+    {% if ads %}
+    <section class="bottom-ads-section" aria-label="الإعلانات">
+      <div class="container-fluid page-container">
+        <div id="bottomAdsCarousel" class="carousel slide bottom-ads-carousel" data-bs-ride="carousel" data-bs-interval="4500">
+          <div class="carousel-inner">
+            {% for ad in ads %}
+            <div class="carousel-item {% if loop.first %}active{% endif %}">
+              {% if ad.link_url %}<a href="{{ ad.link_url }}" target="_blank" rel="noopener" class="bottom-ad-link">{% else %}<div class="bottom-ad-link">{% endif %}
+                <img src="{{ url_for('static', filename=ad.image_path) }}" class="bottom-ad-img" alt="{{ ad.title }}">
+                <div class="bottom-ad-caption"><span>{{ ad.title }}</span></div>
+              {% if ad.link_url %}</a>{% else %}</div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% if ads|length > 1 %}
+          <button class="carousel-control-prev" type="button" data-bs-target="#bottomAdsCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+          <button class="carousel-control-next" type="button" data-bs-target="#bottomAdsCarousel" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <footer class="app-footer">
+      <div class="container-fluid page-container py-3 small text-muted d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span>© 2026 PORTEXA. All Rights Reserved.</span>
+        <span>Portexa Logistics Platform</span>
+      </div>
+    </footer>
+  </div>
+</div>
+{% else %}
+</main>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

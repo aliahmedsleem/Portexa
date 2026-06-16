@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}فتح تذكرة دعم{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-4"><div><h4>فتح تذكرة دعم جديدة</h4><div class="text-muted small">اكتب المشكلة ويمكنك إرفاق صورة توضيحية.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('tickets_list') }}">إغلاق</a></div>
+<form method="post" enctype="multipart/form-data" class="card border-0 shadow-sm"><div class="card-body row g-3">
+<div class="col-12"><label class="form-label">عنوان التذكرة</label><input class="form-control" name="subject" required placeholder="مثال: مشكلة في تتبع شحنة"></div>
+<div class="col-12"><label class="form-label">تفاصيل المشكلة</label><textarea class="form-control" name="body" rows="5" placeholder="اكتب التفاصيل هنا"></textarea></div>
+<div class="col-12"><label class="form-label">إرفاق صورة اختياري</label><input class="form-control" type="file" name="attachment" accept="image/*"></div>
+</div><div class="card-footer bg-white d-flex gap-2 justify-content-end"><a class="btn btn-outline-secondary" href="{{ url_for('tickets_list') }}">إغلاق</a><button class="btn btn-primary">فتح التذكرة</button></div></form>
+{% endblock %}

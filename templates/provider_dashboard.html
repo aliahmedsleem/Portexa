@@ -1,0 +1,13 @@
+{% extends "provider_base.html" %}
+{% block title %}لوحة التحكم{% endblock %}
+{% block content %}
+{% set is_clearer_dash = provider_kind == 'clearer' %}
+<div class="mb-4"><h4 class="mb-1">لوحة التحكم</h4><div class="text-muted small">ملخص سريع للطلبات المرتبطة بحسابك.</div></div>
+<div class="row g-3">
+  <div class="col-md-3"><div class="stat-card"><span>إجمالي الطلبات</span><strong>{{ stats.orders }}</strong></div></div>
+  <div class="col-md-3"><div class="stat-card warning"><span>{{ 'حاويات بالانتظار' if is_clearer_dash else 'حاويات بانتظار النقل' }}</span><strong>{{ stats.waiting }}</strong></div></div>
+  <div class="col-md-3"><div class="stat-card info"><span>{{ 'قيد التخليص' if is_clearer_dash else 'قيد الشحن' }}</span><strong>{{ stats.clearing }}</strong></div></div>
+  <div class="col-md-3"><div class="stat-card success"><span>منجزة</span><strong>{{ stats.done }}</strong></div></div>
+</div>
+<div class="card border-0 shadow-sm mt-4"><div class="card-body d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{{ url_for('clearer_orders' if is_clearer_dash else 'carrier_orders') }}">عرض الطلبات</a><a class="btn btn-outline-primary" href="{{ url_for('clearer_financial_report' if is_clearer_dash else 'carrier_financial_report') }}">التقرير المالي</a></div></div>
+{% endblock %}

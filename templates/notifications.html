@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4"><div><h4 class="mb-1">الإشعارات</h4><div class="text-muted small">آخر التحديثات الخاصة بالشحنات، التخليص، النقل، والتذاكر.</div></div></div>
+<div class="card border-0 shadow-sm"><div class="card-body p-0">
+{% for n in notifications %}
+<a class="notification-row {{ '' if n.is_read else 'unread' }}" href="{{ url_for('notification_open', notification_id=n.id) }}">
+  <div class="notification-dot"></div>
+  <div class="flex-grow-1"><div class="fw-bold">{{ n.title }}</div><div class="small text-muted">{{ n.body or '' }}</div></div>
+  <div class="small text-muted">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+</a>
+{% else %}
+<div class="text-center text-muted py-5">لا توجد إشعارات حالياً.</div>
+{% endfor %}
+</div></div>
+{% endblock %}

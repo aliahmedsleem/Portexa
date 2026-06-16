@@ -1,0 +1,106 @@
+{% extends "admin_base.html" %}
+{% block title %}إدارة المستخدمين{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+  <div>
+    <h4 class="mb-1">إدارة المستخدمين</h4>
+    <div class="text-muted small">هذه الواجهة خاصة بمدير النظام فقط، والمستخدم العادي يدخل إلى نظام الشحنات الحالي.</div>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('admin_users_new') }}">+ إنشاء مستخدم</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">إجمالي المستخدمين العاديين</div>
+        <div class="display-6 fw-bold">{{ normal_users_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">الحسابات الفعالة</div>
+        <div class="display-6 fw-bold text-success">{{ active_users_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">الحسابات غير الفعالة</div>
+        <div class="display-6 fw-bold text-danger">{{ inactive_users_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>اسم المستخدم</th>
+          <th>الشركة</th>
+          <th>المالك</th>
+          <th>الهاتف</th>
+          <th>البريد</th>
+          <th>العنوان</th>
+          <th>نوع الحساب</th>
+          <th>الخطة</th>
+          <th>الحالة</th>
+          <th>المتبقي</th>
+          <th class="text-end">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td class="fw-bold">{{ u.username }}</td>
+          <td>{{ u.company_name or '-' }}</td>
+          <td>{{ u.owner_name or '-' }}</td>
+          <td>{{ u.phone or '-' }}</td>
+          <td>{{ u.email or '-' }}</td>
+          <td>{{ u.address or '-' }}</td>
+          <td>
+            {% if u.is_admin %}
+              <span class="badge text-bg-dark">مدير النظام</span>
+            {% else %}
+              <span class="badge text-bg-primary">تاجر</span>
+            {% endif %}
+          </td>
+          <td>{{ u.plan_type }}</td>
+          <td>
+            {% if u.status_text() == "فعال" %}
+              <span class="badge text-bg-success">فعال</span>
+            {% else %}
+              <span class="badge text-bg-danger">غير فعال</span>
+            {% endif %}
+          </td>
+          <td>{{ u.remaining_days() }} يوم</td>
+          <td class="text-end">
+            <div class="d-flex gap-2 justify-content-end flex-wrap">
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_users_edit', user_id=u.id) }}">عرض/تعديل</a>
+              {% if not u.is_admin %}
+              <form method="post" action="{{ url_for('admin_users_delete', user_id=u.id) }}" onsubmit="return confirm('هل تريد حذف هذا المستخدم؟');">
+                <button class="btn btn-sm btn-outline-danger">حذف</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="12" class="text-center text-muted py-4">لا توجد حسابات مسجلة.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

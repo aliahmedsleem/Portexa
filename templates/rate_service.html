@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4"><div><h4 class="mb-1">تقييم الخدمة</h4><div class="text-muted small">الشحنة #{{ shipment.id }} — {{ provider.company_name or provider.username }}</div></div><a class="btn btn-outline-secondary" href="{{ url_for('shipments_list') }}">إغلاق</a></div>
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post" class="row g-3">
+  <div class="col-md-4"><label class="form-label">التقييم</label><select class="form-select" name="stars">{% for i in [5,4,3,2,1] %}<option value="{{ i }}" {% if existing and existing.stars==i %}selected{% endif %}>{{ i }} نجوم</option>{% endfor %}</select></div>
+  <div class="col-12"><label class="form-label">ملاحظة اختيارية</label><textarea class="form-control" rows="4" name="comment">{{ existing.comment if existing else '' }}</textarea></div>
+  <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('shipments_list') }}">إغلاق</a><button class="btn btn-primary">حفظ التقييم</button></div>
+</form>
+</div></div>
+{% endblock %}

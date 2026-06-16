@@ -1,0 +1,22 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if user %}تعديل معلن{% else %}إنشاء حساب معلن{% endif %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div><h4 class="mb-1">{% if user %}عرض/تعديل حساب معلن{% else %}إنشاء حساب معلن{% endif %}</h4><div class="text-muted small">حساب منفصل يدخل إلى لوحة الإعلانات فقط.</div></div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('admin_advertisers') }}">إغلاق</a>
+</div>
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post" class="row g-3">
+  <div class="col-md-4"><label class="form-label">اسم المستخدم</label><input class="form-control" name="username" value="{{ user.username if user else '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">{% if user %}كلمة مرور جديدة{% else %}كلمة المرور{% endif %}</label><input class="form-control" type="password" name="{{ 'new_password' if user else 'password' }}" {% if not user %}required{% endif %}></div>
+  <div class="col-md-4"><label class="form-label">نوع المعلن</label><select class="form-select" name="advertiser_type">{% for key,label in advertiser_types.items() %}<option value="{{ key }}" {% if user and user.advertiser_type==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <div class="col-md-4"><label class="form-label">اسم الشركة</label><input class="form-control" name="company_name" value="{{ user.company_name if user else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">اسم المالك</label><input class="form-control" name="owner_name" value="{{ user.owner_name if user else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">رقم الهاتف</label><input class="form-control" name="phone" value="{{ user.phone if user else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">البريد الإلكتروني</label><input class="form-control" name="email" value="{{ user.email if user else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">العنوان</label><input class="form-control" name="address" value="{{ user.address if user else '' }}"></div>
+  {% if user %}<div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="active" {% if user.is_active %}checked{% endif %}><label class="form-check-label" for="active">الحساب فعال</label></div></div>{% endif %}
+  <div class="col-12 d-flex gap-2 justify-content-end"><a class="btn btn-outline-secondary" href="{{ url_for('admin_advertisers') }}">إغلاق</a><button class="btn btn-primary">حفظ</button></div>
+</form>
+</div></div>
+{% endblock %}

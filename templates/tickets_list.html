@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}الدعم الفني{% endblock %}
+{% block content %}
+<div class="support-hero mb-4">
+  <div><h4 class="mb-1">الدعم الفني</h4><p class="mb-0 text-muted">افتح تذكرة جديدة وتابع المحادثة مع الموظف المختص. الرسائل محفوظة كسجل دائم.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('tickets_new') }}">+ فتح تذكرة جديدة</a>
+</div>
+<div class="row g-3">
+{% for t in tickets %}
+  <div class="col-12 col-lg-6"><a class="ticket-card" href="{{ url_for('ticket_view', ticket_id=t.id) }}">
+    <div class="d-flex justify-content-between gap-2"><strong>#{{ t.id }} - {{ t.subject }}</strong>{% if t.status == 'OPEN' %}<span class="badge text-bg-success">مفتوحة</span>{% else %}<span class="badge text-bg-secondary">مغلقة</span>{% endif %}</div>
+    <div class="text-muted small mt-2">{{ t.created_at.strftime('%Y-%m-%d %H:%M') }} · {{ t.messages|length }} رسالة</div>
+  </a></div>
+{% else %}<div class="col-12"><div class="empty-state">لا توجد تذاكر حالياً.</div></div>{% endfor %}
+</div>
+{% endblock %}
