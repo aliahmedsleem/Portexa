@@ -2,10 +2,10 @@
 {% block title %}{{ "إنشاء مستخدم" if not user else "تعديل مستخدم" }}{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3 portexa-list-heading">
   <div>
     <h4 class="mb-1">{{ "إنشاء مستخدم" if not user else "عرض/تعديل المستخدم" }}</h4>
-    <div class="text-muted small">مدير النظام منفصل عن واجهة المستخدم.</div>
+    <div class="text-muted small">إدارة بيانات الحساب والصلاحيات والاشتراك.</div>
   </div>
   <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
 </div>
