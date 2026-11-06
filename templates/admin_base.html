@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='urrise-theme.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='portexa-mobile-cards.css?v=roles-v4') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='portexa-mobile-cards.css?v=notifications-v5') }}">
 </head>
 <body class="app-body admin-body">
 {% if current_user.is_authenticated and current_user.is_admin %}
@@ -36,6 +36,7 @@
 
       <div class="sidebar-section-title">إعدادات النظام</div>
       <a class="sidebar-link {% if request.endpoint in ['admin_system_settings','admin_tracking_settings'] %}active{% endif %}" href="{{ url_for('admin_tracking_settings') }}"><span class="link-icon">⚙</span><span>إعدادات التتبع</span></a>
+      <a class="sidebar-link {% if request.endpoint == 'notifications_list' %}active{% endif %}" href="{{ url_for('notifications_list') }}"><span class="link-icon">●</span><span>الإشعارات</span>{% if notification_count() %}<span class="notification-badge">{{ notification_count() }}</span>{% endif %}</a>
     </nav>
 
     <div class="sidebar-footer">
@@ -64,6 +65,7 @@
         <a class="sidebar-link {% if request.endpoint in ['admin_report_settings'] %}active{% endif %}" {% if request.endpoint in ['admin_report_settings'] %}aria-current="page"{% endif %} href="{{ url_for('admin_report_settings') }}">تخصيص تقارير</a>
         <div class="sidebar-section-title">إعدادات النظام</div>
         <a class="sidebar-link {% if request.endpoint in ['admin_tracking_settings','admin_system_settings'] %}active{% endif %}" {% if request.endpoint in ['admin_tracking_settings','admin_system_settings'] %}aria-current="page"{% endif %} href="{{ url_for('admin_tracking_settings') }}">إعدادات التتبع</a>
+        <a class="sidebar-link {% if request.endpoint == 'notifications_list' %}active{% endif %}" href="{{ url_for('notifications_list') }}">الإشعارات ({{ notification_count() }})</a>
       </nav>
       <div class="sidebar-footer mt-4"><a class="btn btn-logout w-100" href="{{ url_for('logout') }}">تسجيل الخروج</a></div>
     </div>
