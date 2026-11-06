@@ -178,15 +178,13 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
                         advertiser_type="MERCHANT",
                         email=pending["email"], owner_name=full_name,
                         phone=phone, company_name=values["company_name"],
-                        address=values["governorate"] + " - " + values["city"] + " - " + values["address"],
+                        address=values["governorate"] + " - " + values["city"] + " - " + values["address"] + " | النشاط: " + values["business_name"],
                         plan_type="TRIAL", starts_at=datetime.utcnow(),
                         expires_at=plan_to_expiry("TRIAL"),
                         license_key=generate_license_key(),
                         license_activated=True, is_active=True,
                     )
-                    # Business name is retained in company_name when no dedicated field exists.
-                    # Keep the distinct submitted name in a separate metadata record later.
-                    user.set_password(secrets.token_urlsafe(48))
+                    # Existing User schema has no dedicated business_name column; retain it in address metadata.\n                    user.set_password(secrets.token_urlsafe(48))
                     try:
                         db.session.add(user)
                         db.session.commit()
