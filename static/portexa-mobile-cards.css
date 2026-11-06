@@ -84,3 +84,18 @@
  .portexa-shipment-list__summary{margin-bottom:14px}
  .portexa-shipment-container + .portexa-shipment-container{margin-top:6px!important}
 }
+
+/* Shared role portals: navigation and distinct service request boundaries */
+@media(max-width:991.98px){
+ .provider-body .service-order-card{border:2px solid #cbd5e1!important;border-top:4px solid #b88935!important;border-radius:17px!important;overflow:hidden!important;box-shadow:0 7px 20px rgba(15,29,52,.11)!important}
+ .provider-body .service-order-card .card-body{padding:16px!important}
+ .provider-body .service-order-card form{margin-top:16px!important;padding-top:16px!important;border-top:2px solid #e2e8f0!important}
+ .provider-body .service-order-card form .btn{min-height:44px}
+ .provider-body .service-order-card .row>div{min-width:0;overflow-wrap:anywhere}
+ .provider-body .service-order-card h5{overflow-wrap:anywhere}
+ .admin-body .responsive-table-wrap,.admin-body .table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .advertiser-body .ad-admin-card{overflow:hidden;border:1px solid #dce4ee!important;border-radius:16px}
+ .advertiser-body .ad-admin-card .card-body{min-width:0;overflow-wrap:anywhere}
+ .mobile-sidebar .sidebar-nav .sidebar-link.active{background:rgba(184,137,53,.13)!important;color:#ad7b26!important;font-weight:900!important;border-radius:10px}
+ .mobile-sidebar .sidebar-nav .sidebar-link{min-height:43px;display:flex;align-items:center}
+}
