@@ -154,6 +154,68 @@ def register_carrier_bookings(app, db, tracking_lookup, notify):
             return redirect(url_for(".providers"))
         return render_template("carrier_external.html", view="providers", providers=Provider.query.filter_by(carrier_id=current_user.id).order_by(Provider.name).all(), csrf=csrf())
 
+    @bp.route("/customers/<int:item_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def edit_customer(item_id):
+        item = owned(Customer, item_id)
+        if request.method == "POST":
+            verify()
+            name = request.form.get("name", "").strip()
+            if not name or len(name) > 220:
+                abort(400)
+            item.name = name
+            item.contact = request.form.get("contact", "").strip()[:160]
+            item.phone = request.form.get("phone", "").strip()[:80]
+            item.email = request.form.get("email", "").strip()[:200]
+            item.address = request.form.get("address", "").strip()[:400]
+            db.session.commit()
+            flash("تم تحديث بيانات الزبون", "success")
+            return redirect(url_for(".customers"))
+        return render_template("carrier_external.html", view="edit_customer", item=item, csrf=csrf())
+
+    @bp.route("/providers/<int:item_id>/edit", methods=["GET", "POST"])
+    @login_required
+    def edit_provider(item_id):
+        item = owned(Provider, item_id)
+        if request.method == "POST":
+            verify()
+            name = request.form.get("name", "").strip()
+            if not name or len(name) > 220:
+                abort(400)
+            item.name = name
+            item.phone = request.form.get("phone", "").strip()[:80]
+            item.notes = request.form.get("notes", "").strip()[:2000]
+            db.session.commit()
+            flash("تم تحديث بيانات مقدم الخدمة", "success")
+            return redirect(url_for(".providers"))
+        return render_template("carrier_external.html", view="edit_provider", item=item, csrf=csrf())
+
+    @bp.post("/customers/<int:item_id>/delete")
+    @login_required
+    def delete_customer(item_id):
+        verify()
+        item = owned(Customer, item_id)
+        if Booking.query.filter_by(carrier_id=current_user.id, customer_id=item.id).first():
+            flash("لا يمكن حذف زبون مرتبط بحجوزات؛ احتفظ به لحماية السجل المالي.", "warning")
+        else:
+            db.session.delete(item)
+            db.session.commit()
+            flash("تم حذف الزبون", "success")
+        return redirect(url_for(".customers"))
+
+    @bp.post("/providers/<int:item_id>/delete")
+    @login_required
+    def delete_provider(item_id):
+        verify()
+        item = owned(Provider, item_id)
+        if Booking.query.filter_by(carrier_id=current_user.id, provider_id=item.id).first():
+            flash("لا يمكن حذف مقدم خدمة مرتبط بحجوزات؛ احتفظ به لحماية السجل المالي.", "warning")
+        else:
+            db.session.delete(item)
+            db.session.commit()
+            flash("تم حذف مقدم الخدمة", "success")
+        return redirect(url_for(".providers"))
+
     @bp.route("/new", methods=["GET", "POST"])
     @login_required
     def new():
