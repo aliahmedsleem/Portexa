@@ -57,3 +57,33 @@ a:hover{color:#ad8136}
 @media(max-width:991.98px){.portexa-auth{grid-template-columns:1fr;min-height:0}.portexa-auth-hero{padding:28px;gap:15px}.portexa-auth-hero h1{font-size:2.2rem}.portexa-auth-panel{padding:28px}.page-container{padding-inline:16px}}
 @media(max-width:575.98px){.portexa-auth{border-radius:18px}.portexa-auth-hero{padding:24px}.portexa-auth-panel{padding:24px}.card-body{padding:16px}.table{font-size:.86rem}.app-footer .page-container{justify-content:center!important;text-align:center}.btn{font-size:.9rem}.portexa-auth-hero p{font-size:.95rem}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* PORTEXA dashboard — accessible responsive metric layout */
+.portexa-page-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;margin-bottom:28px;padding:clamp(20px,3vw,32px);border:1px solid #e5e9f0;border-radius:20px;background:linear-gradient(115deg,#fff,#faf8f3)}
+.portexa-page-heading h1{font-size:clamp(1.35rem,2.5vw,2rem);font-weight:900;color:#172942;margin:4px 0 6px}
+.portexa-page-heading p,.portexa-section-head p{color:#6a7689;margin:0}
+.portexa-eyebrow{color:#a47b37;font-weight:900;font-size:.75rem;letter-spacing:.08em;direction:ltr;text-align:right}
+.portexa-section{margin-bottom:30px}
+.portexa-section-head{margin-bottom:14px}
+.portexa-section-head h2{font-size:1.18rem;font-weight:900;color:#1b2d47;margin:0 0 4px}
+.portexa-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.portexa-metric{min-width:0;display:flex;flex-direction:column;gap:9px;padding:clamp(18px,2.2vw,26px);border:1px solid #e6e9ef;border-radius:18px;background:#fff;box-shadow:0 10px 28px rgba(17,34,59,.05);color:#1c2b42;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease}
+a.portexa-metric:hover{transform:translateY(-3px);box-shadow:0 16px 34px rgba(17,34,59,.11);color:#1c2b42}
+a.portexa-metric:focus-visible{outline:3px solid #c69a4a;outline-offset:3px}
+.portexa-metric-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.portexa-metric-label{font-size:.95rem;font-weight:800;color:#43516a;line-height:1.7}
+.portexa-metric-value{font-size:clamp(2rem,3vw,2.7rem);font-weight:900;line-height:1.15;font-variant-numeric:tabular-nums;color:#162944}
+.portexa-metric-detail{font-size:.83rem;color:#7b8798}
+.portexa-metric-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#f6efe2;color:#9e742e;font-size:1.2rem;flex-shrink:0}
+.portexa-metric-action{font-size:.8rem;font-weight:800;color:#a57932;margin-top:auto;padding-top:8px}
+.portexa-arrival{border-top:4px solid #c39a50}
+.portexa-arrival.urgent{border-top-color:#d87a66}
+.portexa-arrival.week{border-top-color:#bc9551}
+.portexa-arrival.month{border-top-color:#537c9b}
+.portexa-metric.received{border-right:3px solid #4a9c7d}
+.portexa-metric.pending{border-right:3px solid #d38d67}
+.portexa-metric.transit{border-right:3px solid #c49a51}
+.portexa-overview .portexa-metric-value{font-size:clamp(1.8rem,2.8vw,2.35rem)}
+@media(max-width:1000px){.portexa-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.portexa-stats-grid{grid-template-columns:1fr;gap:12px}.portexa-page-heading{padding:20px}.portexa-page-heading .btn{width:100%}.portexa-metric{padding:18px}.portexa-metric-value{font-size:2.1rem}}
