@@ -1115,7 +1115,7 @@ def login():
 
         login_user(user)
         if user.is_admin:
-            return redirect(url_for("admin_users"))
+            return redirect(url_for("billing.dashboard"))
         if user.is_support:
             return redirect(url_for("support_tickets"))
         if getattr(user, "is_advertiser", False):
@@ -1781,7 +1781,7 @@ def normalize_plan(plan_type: str) -> str:
 @app.get("/admin")
 @login_required
 def admin_home():
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("billing.dashboard"))
 
 
 @app.get("/admin/users")
@@ -1848,8 +1848,8 @@ def admin_users_new():
         db.session.add(user)
         db.session.commit()
 
-        flash("تم إنشاء المستخدم بنجاح." if activate_now else "تم إنشاء المستخدم. فعّل الحساب حتى يتمكن من الدخول.", "success")
-        return redirect(url_for("admin_users"))
+        flash("تم إنشاء المستخدم وتوليد اللايسنس تلقائياً. يمكنك تفعيله الآن." if not activate_now else "تم إنشاء المستخدم وتفعيل اللايسنس.", "success")
+        return redirect(url_for("admin_users_edit", user_id=user.id))
 
     return render_template("admin_user_form.html", user=None)
 
@@ -1903,15 +1903,17 @@ def admin_users_edit(user_id):
             user.is_active = False
 
         if (request.form.get("activate_license") or "") == "1":
-            code = (request.form.get("license_code") or "").strip()
-            if code and code == (user.license_key or ""):
+            if user.is_admin:
+                flash("لا يمكن تعديل تفعيل حساب المدير من هذه الشاشة.", "danger")
+            elif user.license_activated and user.is_active:
+                flash("اللايسنس مفعل مسبقاً. لا حاجة لإعادة التفعيل.", "info")
+            else:
+                user.license_key = user.license_key or generate_license_key()
                 user.license_activated = True
                 user.is_active = True
                 user.starts_at = datetime.utcnow()
                 user.expires_at = plan_to_expiry(user.plan_type)
-                flash("تم تفعيل الحساب بنجاح.", "success")
-            else:
-                flash("كود اللايسنس غير صحيح.", "danger")
+                flash("تم تفعيل اللايسنس تلقائياً وبدأت مدة الاشتراك.", "success")
 
         if (request.form.get("deactivate") or "") == "1":
             if user.id == current_user.id:
@@ -2871,6 +2873,10 @@ def carrier_financial_report():
     return render_template("provider_financial_report.html", provider_kind="carrier", shipments=shipments, total=total, company=company)
 
 # -------------------- Run --------------------
+# Subscription billing is registered separately to keep legacy shipment logic intact.
+from subscription_billing import register_billing
+SubscriptionInvoice, SubscriptionPrice = register_billing(app, db, User)
+
 if __name__ == "__main__":
     # يسمح بالدخول من أجهزة الشبكة
     app.run(host="0.0.0.0", port=5000, debug=True)

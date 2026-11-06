@@ -2,10 +2,10 @@
 {% block title %}{{ "إنشاء مستخدم" if not user else "تعديل مستخدم" }}{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3 portexa-list-heading">
   <div>
     <h4 class="mb-1">{{ "إنشاء مستخدم" if not user else "عرض/تعديل المستخدم" }}</h4>
-    <div class="text-muted small">مدير النظام منفصل عن واجهة المستخدم.</div>
+    <div class="text-muted small">إدارة بيانات الحساب والصلاحيات والاشتراك.</div>
   </div>
   <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
 </div>
@@ -80,18 +80,22 @@
 
       <div class="row g-3 align-items-end">
         <div class="col-12">
-          <div class="text-muted small mb-1">License Key</div>
+          <div class="text-muted small mb-1">رمز اللايسنس المولّد تلقائياً</div>
           <code class="d-block p-3 bg-light rounded-3 text-break">{{ user.license_key }}</code>
         </div>
 
-        <div class="col-12 col-md-6">
-          <label class="form-label">أدخل كود اللايسنس للتفعيل</label>
-          <input name="license_code" class="form-control" placeholder="انسخ License Key هنا للتفعيل">
-        </div>
-
-        <div class="col-12 col-md-6 d-flex gap-2 flex-wrap">
-          <button name="activate_license" value="1" class="btn btn-success">تفعيل</button>
-          <button name="deactivate" value="1" class="btn btn-outline-danger">إلغاء التفعيل</button>
+        <div class="col-12">
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% if not user.license_activated %}
+              <button type="submit" name="activate_license" value="1" class="btn btn-success px-4">تفعيل اللايسنس تلقائياً</button>
+            {% else %}
+              <span class="badge bg-success px-3 py-2">اللايسنس مفعل</span>
+            {% endif %}
+            {% if user.license_activated and not user.is_admin %}
+              <button type="submit" name="deactivate" value="1" class="btn btn-outline-danger">إلغاء التفعيل</button>
+            {% endif %}
+          </div>
+          <div class="text-muted small mt-2">لا حاجة لنسخ الرمز أو إدخاله يدوياً. يبدأ احتساب الاشتراك عند التفعيل.</div>
         </div>
       </div>
 
