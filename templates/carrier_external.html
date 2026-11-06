@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 for(const kind of ['customer','provider']){
 const input=document.getElementById(kind+'_search'),hidden=document.getElementById(kind+'_id');
 if(!input||!hidden)continue;
-const update=()=>{const match=input.value.match(/\\((\\d+)\\)$/);hidden.value=match?match[1]:'';input.setCustomValidity(hidden.value?'':'اختر شركة من نتائج البحث')};
+const update=()=>{const match=input.value.match(/\((\d+)\)$/);hidden.value=match?match[1]:'';input.setCustomValidity(hidden.value?'':'اختر شركة من نتائج البحث')};
 input.addEventListener('input',update);input.addEventListener('change',update);
 const form=input.closest('form');form.addEventListener('submit',update);
 }
