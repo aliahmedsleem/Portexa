@@ -3,8 +3,10 @@ Register with register_billing(app, db, User) after legacy routes are defined.
 All amounts are integer IQD. Payment confirmation is manual and auditable.
 """
 from datetime import datetime, timedelta
+import secrets
+import hmac
 from decimal import Decimal, InvalidOperation
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
@@ -31,6 +33,14 @@ def register_billing(app, db, User):
         updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     bp = Blueprint("billing", __name__, url_prefix="/admin/billing")
+    @bp.before_request
+    def csrf_guard():
+        if request.method == "POST":
+            expected = session.get("billing_csrf")
+            supplied = request.form.get("billing_csrf", "")
+            if not expected or not hmac.compare_digest(expected, supplied):
+                abort(400)
+
     plans = ("MONTHLY", "YEARLY", "TWO_YEARS")
     labels = {"TRIAL": "تجريبي", "MONTHLY": "شهري", "YEARLY": "سنوي", "TWO_YEARS": "سنتان"}
     def eligible_query():
@@ -59,6 +69,7 @@ def register_billing(app, db, User):
     def dashboard():
         admin_only()
         now = datetime.utcnow()
+        session.setdefault('billing_csrf', secrets.token_urlsafe(32))
         users = eligible_query().all()
         merchants = [u for u in users if not u.is_clearer and not u.is_carrier]
         clearers = [u for u in users if u.is_clearer]
@@ -82,7 +93,8 @@ def register_billing(app, db, User):
             "inactive": sum(1 for u in users if u.status_text() != "فعال")
         }, paid=totals("PAID"), unpaid=totals("UNPAID"),
             upcoming=int(due_30), forecast=forecast, prices=prices,
-            invoices=invoices, lookup=lookup, plans=plans, labels=labels, users=users)
+            invoices=invoices, lookup=lookup, plans=plans, labels=labels, users=users,
+            billing_csrf=session['billing_csrf'])
 
     @bp.post("/prices")
     @login_required
