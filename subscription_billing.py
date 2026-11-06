@@ -189,6 +189,36 @@ def register_billing(app, db, User):
         flash("تم إلغاء الفاتورة دون حذف سجلها.", "success")
         return redirect(url_for("billing.dashboard"))
 
+    @app.cli.command("billing-renewals")
+    def generate_renewal_invoices():
+        """Idempotently issue invoices for customers due within 7 days.
+        Only previously paid subscriptions are eligible for auto-invoicing.
+        No external payment is attempted, and no access is extended.
+        """
+        now = datetime.utcnow()
+        deadline = now + timedelta(days=7)
+        prices = price_map()
+        count = 0
+        for user in eligible_query().filter(
+                User.expires_at.isnot(None), User.expires_at >= now,
+                User.expires_at <= deadline).all():
+            if user.plan_type not in plans or prices.get(user.plan_type, 0) <= 0:
+                continue
+            previously_paid = SubscriptionInvoice.query.filter_by(
+                user_id=user.id, status="PAID").first()
+            if not previously_paid:
+                continue
+            already_open = SubscriptionInvoice.query.filter_by(
+                user_id=user.id, status="UNPAID").first()
+            if already_open:
+                continue
+            db.session.add(SubscriptionInvoice(
+                user_id=user.id, plan_type=user.plan_type,
+                amount_iqd=prices[user.plan_type], due_at=user.expires_at))
+            count += 1
+        db.session.commit()
+        print(f"Renewal invoices issued: {count}")
+
     app.register_blueprint(bp)
     # Deliberately NOT db.create_all() on import: migrations must be applied separately.
     return SubscriptionInvoice, SubscriptionPrice
