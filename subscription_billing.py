@@ -156,6 +156,16 @@ def register_billing(app, db, User):
             flash("مرجع التسديد مطلوب لأغراض التدقيق.", "danger")
             return redirect(url_for("billing.dashboard"))
         user = eligible_query().filter(User.id == invoice.user_id).first_or_404()
+        # A disabled previously-paid account may be under administrative suspension.
+        # Never override that state through financial confirmation.
+        previously_paid = SubscriptionInvoice.query.filter(
+            SubscriptionInvoice.user_id == user.id,
+            SubscriptionInvoice.status == "PAID",
+            SubscriptionInvoice.id != invoice.id
+        ).first()
+        if previously_paid and not user.license_activated:
+            flash("الحساب معطل إدارياً أو الترخيص ملغى؛ وثّق الدفع دون إعادة تفعيل تلقائي بعد مراجعة الإدارة.", "danger")
+            return redirect(url_for("billing.dashboard"))
         now = datetime.utcnow()
         start = max(now, user.expires_at) if user.expires_at else now
         end = advance(start, invoice.plan_type)
