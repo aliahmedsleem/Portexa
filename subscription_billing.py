@@ -46,7 +46,7 @@ def register_billing(app, db, User):
     def eligible_query():
         return User.query.filter(
             User.is_admin.is_(False), User.is_support.is_(False),
-            User.is_advertiser.is_(False)
+            User.is_advertiser.is_(False), User.username.notin_(("admin", "systemadmin"))
         )
     def admin_only():
         if not current_user.is_authenticated or not current_user.is_admin:
