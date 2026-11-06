@@ -6,7 +6,6 @@ from datetime import datetime
 from urllib.parse import urlparse
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for, Response
 from flask_login import current_user, login_required
-from sqlalchemy import or_
 
 def register_push_campaigns(app, db, User, SystemNotification):
     bp = Blueprint("push_campaigns", __name__, url_prefix="/push")
@@ -179,6 +178,18 @@ def register_push_campaigns(app, db, User, SystemNotification):
         action = request.form.get("action")
         if action not in ("approve", "reject"):
             abort(400)
+        if action == "approve" and c.kind == "AD":
+            from decimal import Decimal, InvalidOperation
+            try:
+                amount = Decimal(request.form.get("amount", "")).quantize(Decimal("0.01"))
+                if not amount.is_finite() or amount <= 0 or amount > Decimal("999999999999.99"):
+                    abort(400)
+            except (InvalidOperation, ValueError, TypeError):
+                abort(400)
+            currency = request.form.get("currency")
+            if currency not in ("IQD", "USD"):
+                abort(400)
+            c.amount, c.currency = amount, currency
         c.status = "APPROVED" if action == "approve" else "REJECTED"
         c.reviewer_id = current_user.id
         c.reviewed_at = datetime.utcnow()
