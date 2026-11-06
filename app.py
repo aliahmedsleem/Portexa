@@ -1115,7 +1115,7 @@ def login():
 
         login_user(user)
         if user.is_admin:
-            return redirect(url_for("admin_users"))
+            return redirect(url_for("billing.dashboard"))
         if user.is_support:
             return redirect(url_for("support_tickets"))
         if getattr(user, "is_advertiser", False):
@@ -1781,7 +1781,7 @@ def normalize_plan(plan_type: str) -> str:
 @app.get("/admin")
 @login_required
 def admin_home():
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("billing.dashboard"))
 
 
 @app.get("/admin/users")
@@ -2871,6 +2871,10 @@ def carrier_financial_report():
     return render_template("provider_financial_report.html", provider_kind="carrier", shipments=shipments, total=total, company=company)
 
 # -------------------- Run --------------------
+# Subscription billing is registered separately to keep legacy shipment logic intact.
+from subscription_billing import register_billing
+SubscriptionInvoice, SubscriptionPrice = register_billing(app, db, User)
+
 if __name__ == "__main__":
     # يسمح بالدخول من أجهزة الشبكة
     app.run(host="0.0.0.0", port=5000, debug=True)
