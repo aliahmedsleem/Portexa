@@ -24,7 +24,7 @@ def register_billing(app, db, User):
         payment_reference = db.Column(db.String(150))
         period_starts_at = db.Column(db.DateTime)
         period_ends_at = db.Column(db.DateTime)
-        __table_args__ = (Index('uq_billing_open_invoice', 'user_id', unique=True, sqlite_where=db.text("status = 'UNPAID'")),)
+        __table_args__ = (Index('uq_billing_open_invoice', 'user_id', unique=True, sqlite_where=db.text("status = 'UNPAID'"), postgresql_where=db.text("status = 'UNPAID'")),)
 
     class SubscriptionPrice(db.Model):
         __tablename__ = "subscription_price"
