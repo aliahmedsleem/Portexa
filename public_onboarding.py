@@ -131,5 +131,10 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
         login_user(user)
         return redirect(destination(user))
 
+    @app.before_request
+    def public_home_redirect():
+        if request.path == "/" and request.method == "GET" and not current_user.is_authenticated:
+            return redirect(url_for("onboarding.landing"))
+
     app.register_blueprint(bp)
     return bp
