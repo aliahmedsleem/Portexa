@@ -14,7 +14,7 @@
 .px-finance-title{margin:1.65rem 0 .85rem;font-weight:750;font-size:1.05rem}
 .px-finance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
 .px-currency{font-size:.85rem;font-weight:700;margin-inline-start:.35rem;opacity:.8}
-.px-dash-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.5rem}
+
 @media(max-width:1050px){.px-dash-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.px-dash-grid,.px-finance-grid{grid-template-columns:1fr}.px-dash-card{padding:1rem}.px-dash-actions a{flex:1 1 100%}}
 </style>
@@ -43,9 +43,4 @@
 </div>
 <p class="text-muted small mt-2">تُحسب الأرصدة بعد خصم الدفعات المسجلة، وتُعرض كل عملة بصورة مستقلة. لا تشمل المتأخرات من الأشهر السابقة أو طلبات النقل التقليدية.</p>
 {% endif %}
-<div class="px-dash-actions">
-<a class="btn btn-primary" href="{{ url_for('clearer_orders' if is_clearer_dash else 'carrier_orders') }}">عرض الطلبات</a>
-{% if not is_clearer_dash %}<a class="btn btn-outline-primary" href="{{ url_for('carrier_bookings.index') }}">الحجوزات الخارجية</a>{% endif %}
-<a class="btn btn-outline-secondary" href="{{ url_for('clearer_financial_report' if is_clearer_dash else 'carrier_financial_report') }}">التقرير المالي</a>
-</div>
 {% endblock %}
