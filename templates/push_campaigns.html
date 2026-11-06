@@ -1,0 +1,26 @@
+{% extends 'admin_base.html' if admin else 'advertiser_base.html' %}
+{% block title %}حملات الإشعارات | PORTEXA{% endblock %}
+{% block content %}
+<style>.push-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.push-grid label{font-weight:650;display:block;margin-bottom:.3rem}.push-panel{border:1px solid var(--bs-border-color,#ddd);border-radius:16px;padding:1.25rem;margin-bottom:1.2rem;background:var(--bs-body-bg,#fff)}.push-table{overflow-x:auto}@media(max-width:680px){.push-grid{grid-template-columns:1fr}}</style>
+<h3 class="mb-3">إدارة حملات الإشعارات</h3>
+<div class="push-panel">
+<h5>إنشاء خطة جديدة</h5>
+<form method="post" class="push-grid">
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+{% if admin %}<div><label>نوع الرسالة</label><select name="kind" id="push-kind" class="form-select"><option value="SYSTEM">رسالة نظام مجانية</option><option value="AD">رسالة إعلانية</option></select></div><div id="push-advertiser"><label>المعلن</label><select name="advertiser_id" class="form-select"><option value="">اختر المعلن</option>{% for a in advertisers %}<option value="{{ a.id }}">{{ a.company_name or a.username }}</option>{% endfor %}</select></div>{% else %}<input type="hidden" name="kind" value="AD">{% endif %}
+<div><label>الجمهور المستهدف</label><select name="audience" class="form-select" required><option value="ALL">جميع المستخدمين</option><option value="MERCHANT">التجار</option><option value="CLEARER">المخلصون الجمركيون</option><option value="CARRIER">شركات النقل</option></select></div>
+<div><label>موعد التنفيذ (UTC)</label><input type="datetime-local" class="form-control" name="scheduled_at" required><small class="text-muted">التوقيت العالمي UTC؛ توقيت بغداد = UTC+3</small></div>
+<div><label>عنوان الإشعار</label><input name="title" maxlength="160" class="form-control" required></div>
+<div><label>رابط داخلي عند النقر</label><input name="target_url" class="form-control" value="/notifications" maxlength="500" required></div>
+<div style="grid-column:1/-1"><label>نص الإشعار</label><textarea name="body" maxlength="500" rows="3" class="form-control" required></textarea></div>
+<div><button class="btn btn-primary" type="submit">حفظ الخطة</button></div>
+</form>
+</div>
+<div class="push-panel"><h5>سجل الحملات</h5><div class="push-table"><table class="table table-hover align-middle"><thead><tr><th>الحملة</th><th>النوع</th><th>الفئة</th><th>الموعد UTC</th><th>الحالة</th><th>النتائج</th><th>الإجراء</th></tr></thead><tbody>
+{% for c in campaigns %}<tr><td><strong>{{ c.title }}</strong><div class="small text-muted">{{ c.body }}</div></td><td>{{ 'نظام' if c.kind=='SYSTEM' else 'إعلان' }}</td><td>{{ {'ALL':'الكل','MERCHANT':'التجار','CLEARER':'المخلصون','CARRIER':'شركات النقل'}.get(c.audience,c.audience) }}</td><td>{{ c.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ {'PENDING':'بانتظار الموافقة','APPROVED':'موافق عليها','REJECTED':'مرفوضة','SENDING':'قيد الإرسال','COMPLETED':'مكتملة','CANCELLED':'ملغاة'}.get(c.status,c.status) }}</td><td>{{ c.sent_count }} نجح / {{ c.failed_count }} فشل</td><td>
+{% if admin and c.status=='PENDING' %}<form method="post" action="{{ url_for('push_campaigns.review',campaign_id=c.id) }}" class="d-flex gap-1 flex-wrap"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn-sm btn-success" name="action" value="approve">موافقة</button><button class="btn btn-sm btn-outline-danger" name="action" value="reject">رفض</button><input class="form-control form-control-sm" name="reason" placeholder="سبب الرفض" style="max-width:170px"></form>{% endif %}
+{% if c.status in ['PENDING','APPROVED'] %}<form method="post" action="{{ url_for('push_campaigns.cancel',campaign_id=c.id) }}" class="mt-1"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">إلغاء</button></form>{% endif %}
+</td></tr>{% else %}<tr><td colspan="7" class="text-center text-muted">لا توجد حملات بعد</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% if admin %}<script>const k=document.getElementById('push-kind'),a=document.getElementById('push-advertiser');function sync(){a.hidden=k.value!=='AD'}k.addEventListener('change',sync);sync()</script>{% endif %}
+{% endblock %}
