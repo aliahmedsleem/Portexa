@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 {% set locked_by_carrier = shipment and shipment.carrier_id %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 portexa-list-heading">
   <div>
     <h4 class="mb-0">{{ "تعديل شحنة" if shipment else "إضافة شحنة جديدة" }}</h4>
-    <div class="text-muted small">اختر المخلص أو شركة النقل من المفضلة فقط. أضفهم من خدمات التخليص أو خدمات النقل قبل إنشاء الشحنة.</div>
+    <div class="text-muted small">أكمل بيانات الشحنة، وحدد مزودي الخدمات من قائمة المفضلة قبل الحفظ.</div>
   </div>
   <a class="btn btn-outline-secondary" href="{{ url_for('shipments_list') }}">رجوع</a>
 </div>
