@@ -22,3 +22,17 @@ logs/
 
 .DS_Store
 Thumbs.db
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+
+# User-generated files
+static/support_uploads/
+static/ad_uploads/
+
+# Local secrets
+.env.*
+!.env.example
