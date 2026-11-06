@@ -45,30 +45,52 @@
   </div>
 </div>
 
-<div class="portexa-mobile-only portexa-card-list mb-3">
-{% for s in shipments %}
-{% set st = status_badge(s.status) %}
-<article class="portexa-data-card">
-  <div class="portexa-data-card__head"><strong class="portexa-data-card__title">الشحنة #{{ s.id }}</strong><span class="badge text-bg-{{ st[1] }}">{{ st[0] }}</span></div>
-  <dl class="portexa-data-card__fields">
-    <div class="portexa-data-card__field"><dt>المعمل</dt><dd>{{ s.factory.name }}</dd></div>
-    <div class="portexa-data-card__field"><dt>موعد الوصول</dt><dd>{{ s.arrival_date.strftime('%Y-%m-%d') if s.arrival_date else '-' }}</dd></div>
-    <div class="portexa-data-card__field"><dt>الفاتورة</dt><dd>{{ s.invoice_no or '-' }}</dd></div>
-    <div class="portexa-data-card__field"><dt>البوليصة</dt><dd>{{ s.bol_no or '-' }}</dd></div>
-    <div class="portexa-data-card__field"><dt>شركة النقل</dt><dd>{{ s.carrier.company_name if s.carrier else '-' }}</dd></div>
-    <div class="portexa-data-card__field"><dt>المخلص</dt><dd>{{ s.clearer.company_name if s.clearer else '-' }}</dd></div>
-    <div class="portexa-data-card__field"><dt>حالة التخليص</dt><dd>{{ clearance_status_label(s.clearance_status) if s.clearer else '-' }}</dd></div>
-  </dl>
-  <div class="portexa-data-card__actions">
-    <button type="button" class="btn btn-outline-info" onclick="openDetails({{ s.id }})">عرض التفاصيل</button>
-    <a class="btn btn-outline-primary" href="{{ url_for('shipments_edit', shipment_id=s.id) }}">تعديل</a>
-    {% if s.clearer and s.clearance_status == 'DONE' %}<a class="btn btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CLEARER') }}">تقييم المخلص</a>{% endif %}
-    {% if s.carrier and s.status == 'RECEIVED' %}<a class="btn btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CARRIER') }}">تقييم النقل</a>{% endif %}
-    <form method="post" action="{{ url_for('shipments_delete', shipment_id=s.id) }}" onsubmit="return confirm('تأكيد حذف الشحنة؟');"><button class="btn btn-outline-danger" type="submit">حذف</button></form>
-  </div>
-</article>
-{% else %}<div class="portexa-data-card text-center text-muted">لا توجد نتائج مطابقة للبحث.</div>{% endfor %}
-</div>
+<section class="portexa-mobile-only portexa-shipment-list" aria-label="قائمة الشحنات">
+  <div class="portexa-shipment-list__summary"><span>الشحنات المعروضة</span><strong>{{ shipments|length }}</strong></div>
+  {% for s in shipments %}
+  {% set st = status_badge(s.status) %}
+  <article class="portexa-shipment-container" aria-label="الشحنة رقم {{ s.id }}">
+    <header class="portexa-shipment-container__header">
+      <div class="portexa-shipment-container__identity">
+        <span class="portexa-shipment-container__eyebrow">PORTEXA · SHIPMENT</span>
+        <h2>شحنة <bdi>#{{ s.id }}</bdi></h2>
+        <p>{{ s.factory.name }}</p>
+      </div>
+      <span class="portexa-shipment-container__status badge text-bg-{{ st[1] }}">{{ st[0] }}</span>
+    </header>
+    <div class="portexa-shipment-container__body">
+      <div class="portexa-shipment-container__arrival">
+        <span class="portexa-shipment-container__arrival-icon" aria-hidden="true">◷</span>
+        <div><span class="portexa-shipment-container__field-label">موعد الوصول المتوقع</span><strong dir="ltr">{{ s.arrival_date.strftime('%Y-%m-%d') if s.arrival_date else 'غير محدد' }}</strong></div>
+      </div>
+      <dl class="portexa-shipment-container__grid">
+        <div class="portexa-shipment-container__field"><dt>رقم الفاتورة</dt><dd><bdi>{{ s.invoice_no or '-' }}</bdi></dd></div>
+        <div class="portexa-shipment-container__field"><dt>رقم البوليصة</dt><dd><bdi>{{ s.bol_no or '-' }}</bdi></dd></div>
+        <div class="portexa-shipment-container__field"><dt>شركة النقل</dt><dd>{{ s.carrier.company_name if s.carrier else '-' }}</dd></div>
+        <div class="portexa-shipment-container__field"><dt>المخلص الجمركي</dt><dd>{{ s.clearer.company_name if s.clearer else '-' }}</dd></div>
+        <div class="portexa-shipment-container__field portexa-shipment-container__field--wide"><dt>حالة التخليص</dt><dd>{{ clearance_status_label(s.clearance_status) if s.clearer else '-' }}</dd></div>
+      </dl>
+    </div>
+    <footer class="portexa-shipment-container__footer">
+      <div class="portexa-shipment-container__main-actions">
+        <button type="button" class="btn btn-primary" onclick="openDetails({{ s.id }})"><span aria-hidden="true">◉</span> عرض التفاصيل</button>
+        <a class="btn btn-outline-primary" href="{{ url_for('shipments_edit', shipment_id=s.id) }}">تعديل الشحنة</a>
+      </div>
+      {% if (s.clearer and s.clearance_status == 'DONE') or (s.carrier and s.status == 'RECEIVED') %}
+      <div class="portexa-shipment-container__secondary-actions">
+        {% if s.clearer and s.clearance_status == 'DONE' %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CLEARER') }}">تقييم المخلص</a>{% endif %}
+        {% if s.carrier and s.status == 'RECEIVED' %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CARRIER') }}">تقييم النقل</a>{% endif %}
+      </div>
+      {% endif %}
+      <div class="portexa-shipment-container__danger">
+        <form method="post" action="{{ url_for('shipments_delete', shipment_id=s.id) }}" onsubmit="return confirm('تأكيد حذف الشحنة؟');"><button class="btn btn-link text-danger" type="submit">حذف الشحنة</button></form>
+      </div>
+    </footer>
+  </article>
+  {% else %}
+  <div class="portexa-data-card text-center text-muted">لا توجد نتائج مطابقة للبحث.</div>
+  {% endfor %}
+</section>
 <div class="card shadow-sm border-0 portexa-desktop-only">
   <div class="card-body table-responsive">
     <table class="table align-middle">
