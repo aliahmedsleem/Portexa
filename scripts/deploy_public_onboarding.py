@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FILES = ("public_onboarding.py", "templates/public_landing.html")
+FILES = ("public_onboarding.py", "templates/public_landing.html", "templates/public_complete_profile.html")
 REGISTRATION = (
     "\n# Public landing and Google trial onboarding.\n"
     "from public_onboarding import register_public_onboarding\n"
@@ -39,6 +39,11 @@ def main():
         if old.count(ANCHOR) != 1:
             p.error("Could not find unique app startup anchor")
         new = old.replace(ANCHOR, REGISTRATION + ANCHOR, 1)
+    guard_anchor = '"onboarding.google_callback",'
+    if '"onboarding.complete_profile"' not in new:
+        if new.count(guard_anchor) != 1:
+            p.error("Missing unique callback guard allowlist entry; do not deploy")
+        new = new.replace(guard_anchor, guard_anchor + '\n        "onboarding.complete_profile",', 1)
     ast.parse(new)
     ast.parse((ROOT / "public_onboarding.py").read_text(encoding="utf-8"))
     print("".join(difflib.unified_diff(old.splitlines(True), new.splitlines(True),
