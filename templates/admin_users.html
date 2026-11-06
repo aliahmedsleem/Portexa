@@ -2,10 +2,10 @@
 {% block title %}إدارة المستخدمين{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4 portexa-list-heading">
   <div>
     <h4 class="mb-1">إدارة المستخدمين</h4>
-    <div class="text-muted small">هذه الواجهة خاصة بمدير النظام فقط، والمستخدم العادي يدخل إلى نظام الشحنات الحالي.</div>
+    <div class="text-muted small">إدارة حسابات التجار والاشتراكات وحالات التفعيل.</div>
   </div>
   <a class="btn btn-primary" href="{{ url_for('admin_users_new') }}">+ إنشاء مستخدم</a>
 </div>
