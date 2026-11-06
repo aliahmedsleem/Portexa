@@ -420,14 +420,37 @@ def create_notification(user_id, title, body="", url=None):
     db.session.add(SystemNotification(user_id=user_id, title=title, body=body, url=url, is_read=False))
 
 
+def notification_category(notification):
+    """Classify old and new notifications without a database migration."""
+    title = (notification.title or "").lower()
+    if any(word in title for word in ("تذكرة", "الدعم", "رسالة")):
+        return ("الدعم الفني", "support", "info")
+    if any(word in title for word in ("إعلان", "الاعلان")):
+        return ("الإعلانات", "ads", "warning")
+    if any(word in title for word in ("تخليص", "المخلص")):
+        return ("التخليص الجمركي", "clearance", "primary")
+    if any(word in title for word in ("نقل", "الشحن", "حجز مساحة")):
+        return ("الشحن والنقل", "shipping", "info")
+    if any(word in title for word in ("سعر", "مبلغ", "قبول", "رفض")):
+        return ("الموافقات والأسعار", "quotes", "warning")
+    if any(word in title for word in ("حساب", "اشتراك", "مستخدم")):
+        return ("إدارة النظام", "system", "secondary")
+    return ("عام", "general", "secondary")
+
+
+def notify_support_staff(title, body, url):
+    for member in User.query.filter_by(is_support=True, is_active=True).all():
+        create_notification(member.id, title, body, url)
+
+
 def notification_count():
-    if not current_user.is_authenticated or is_admin():
+    if not current_user.is_authenticated:
         return 0
     return SystemNotification.query.filter_by(user_id=current_user.id, is_read=False).count()
 
 
 def latest_notifications(limit=5):
-    if not current_user.is_authenticated or is_admin():
+    if not current_user.is_authenticated:
         return []
     return SystemNotification.query.filter_by(user_id=current_user.id).order_by(SystemNotification.id.desc()).limit(limit).all()
 
@@ -490,6 +513,7 @@ def archive_expired_ads():
         if expired:
             for ad in expired:
                 ad.status = "ARCHIVED"
+                create_notification(ad.advertiser_id, "انتهاء الإعلان", f"انتهت مدة إعلانك: {ad.title}، وانتقل إلى الأرشيف.", "/advertiser/ads")
             db.session.commit()
     except Exception:
         db.session.rollback()
@@ -823,7 +847,7 @@ def guard_everything():
 
     if is_admin():
         # مدير النظام يدخل لوحة الإدارة فقط.
-        if not request.path.startswith("/admin"):
+        if not (request.path.startswith("/admin") or request.path.startswith("/notifications")):
             return redirect(url_for("admin_users"))
     elif is_support():
         # موظف الدعم الفني يدخل منظومة التكتات والإشعارات فقط.
@@ -831,7 +855,7 @@ def guard_everything():
             return redirect(url_for("support_tickets"))
     elif is_advertiser():
         # حساب المعلن يدخل فقط إلى لوحة إعلاناته.
-        if not request.path.startswith("/advertiser"):
+        if not (request.path.startswith("/advertiser") or request.path.startswith("/notifications")):
             return redirect(url_for("advertiser_ads"))
     elif is_clearer():
         if not (request.path.startswith("/clearer") or request.path.startswith("/notifications")):
@@ -2248,6 +2272,8 @@ def advertiser_ads_new():
             status="ACTIVE",
         )
         db.session.add(ad)
+        db.session.flush()
+        create_notification(current_user.id, "تم نشر الإعلان", f"تم نشر إعلانك: {ad.title}.", url_for("advertiser_ads"))
         db.session.commit()
         flash("تم رفع الإعلان ونشره.", "success")
         return redirect(url_for("advertiser_ads"))
@@ -2534,6 +2560,7 @@ def tickets_new():
             return render_template("ticket_new.html")
         msg = TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body=body or "تم فتح التذكرة.", attachment_path=attach_path, attachment_name=attach_name)
         db.session.add(msg)
+        notify_support_staff("تذكرة دعم جديدة", f"فتح {current_user.username} تذكرة #{ticket.id}: {ticket.subject}", url_for("support_ticket_view", ticket_id=ticket.id))
         db.session.commit()
         flash("تم فتح تذكرة الدعم بنجاح.", "success")
         return redirect(url_for("ticket_view", ticket_id=ticket.id))
@@ -2558,6 +2585,7 @@ def ticket_view(ticket_id):
             flash("اكتب رسالة أو أرفق صورة.", "warning")
             return redirect(url_for("ticket_view", ticket_id=ticket.id))
         db.session.add(TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body=body, attachment_path=attach_path, attachment_name=attach_name))
+        notify_support_staff("رسالة دعم جديدة", f"رسالة جديدة في التذكرة #{ticket.id} من {current_user.username}.", url_for("support_ticket_view", ticket_id=ticket.id))
         db.session.commit()
         return redirect(url_for("ticket_view", ticket_id=ticket.id))
     return render_template("ticket_view.html", ticket=ticket, support_mode=False)
@@ -2586,6 +2614,7 @@ def support_ticket_view(ticket_id):
             ticket.closed_at = datetime.utcnow()
             ticket.assigned_to_id = ticket.assigned_to_id or current_user.id
             db.session.add(TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body="تم إغلاق التذكرة من قبل الدعم الفني."))
+            create_notification(ticket.user_id, "إغلاق تذكرة الدعم", f"تم إغلاق التذكرة #{ticket.id} من الدعم الفني.", url_for("ticket_view", ticket_id=ticket.id))
             db.session.commit()
             flash("تم إغلاق التذكرة.", "success")
             return redirect(url_for("support_ticket_view", ticket_id=ticket.id))
@@ -2603,6 +2632,7 @@ def support_ticket_view(ticket_id):
             return redirect(url_for("support_ticket_view", ticket_id=ticket.id))
         ticket.assigned_to_id = ticket.assigned_to_id or current_user.id
         db.session.add(TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body=body, attachment_path=attach_path, attachment_name=attach_name))
+        create_notification(ticket.user_id, "رد جديد من الدعم الفني", f"وصل رد جديد على التذكرة #{ticket.id}.", url_for("ticket_view", ticket_id=ticket.id))
         db.session.commit()
         return redirect(url_for("support_ticket_view", ticket_id=ticket.id))
     return render_template("ticket_view.html", ticket=ticket, support_mode=True)
@@ -2614,10 +2644,32 @@ def support_ticket_view(ticket_id):
 @app.get("/notifications")
 @login_required
 def notifications_list():
-    if is_admin():
-        return redirect(url_for("admin_users"))
     notifications = SystemNotification.query.filter_by(user_id=current_user.id).order_by(SystemNotification.id.desc()).limit(100).all()
-    return render_template("notifications.html", notifications=notifications)
+    selected = (request.args.get("category") or "all").strip()
+    unread_only = request.args.get("unread") == "1"
+    categories = {"all": "الكل", "support": "الدعم الفني", "ads": "الإعلانات",
+                  "clearance": "التخليص", "shipping": "الشحن والنقل",
+                  "quotes": "الموافقات", "system": "الإدارة", "general": "عام"}
+    if selected not in categories:
+        selected = "all"
+    notifications = [n for n in notifications
+                     if (selected == "all" or notification_category(n)[1] == selected)
+                     and (not unread_only or not n.is_read)]
+    return render_template("notifications.html", notifications=notifications,
+                           notification_category=notification_category,
+                           categories=categories, selected=selected,
+                           unread_only=unread_only)
+
+
+@app.post("/notifications/read-all")
+@login_required
+def notifications_read_all():
+    SystemNotification.query.filter_by(user_id=current_user.id, is_read=False).update(
+        {"is_read": True}, synchronize_session=False
+    )
+    db.session.commit()
+    flash("تم تحديد جميع الإشعارات كمقروءة.", "success")
+    return redirect(url_for("notifications_list"))
 
 
 @app.get("/notifications/<int:notification_id>/open")
@@ -2626,7 +2678,11 @@ def notification_open(notification_id):
     n = SystemNotification.query.filter_by(id=notification_id, user_id=current_user.id).first_or_404()
     n.is_read = True
     db.session.commit()
-    return redirect(n.url or url_for("notifications_list"))
+    target = n.url or url_for("notifications_list")
+    # Notification URLs must stay inside this application.
+    if not target.startswith("/") or target.startswith("//"):
+        target = url_for("notifications_list")
+    return redirect(target)
 
 
 # ===================== Trader Quote Decisions =====================
