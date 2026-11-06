@@ -116,6 +116,30 @@ def register_carrier_bookings(app, db, tracking_lookup, notify):
         provider_paid = paid.get("PROVIDER") or Decimal("0")
         return {"received": customer_paid, "spent": provider_paid, "receivable": booking.sale_amount-customer_paid, "payable": booking.provider_cost-provider_paid, "profit": booking.sale_amount-booking.provider_cost}
 
+    @app.context_processor
+    def carrier_monthly_due_context():
+        """Unpaid external-booking balances due in the current calendar month.
+        Calculated only on the carrier dashboard; never mix currencies.
+        """
+        if request.endpoint != "carrier_dashboard" or not current_user.is_authenticated or not getattr(current_user, "is_carrier", False):
+            return {}
+        today = date.today()
+        start = today.replace(day=1)
+        end = date(today.year + (today.month == 12), 1 if today.month == 12 else today.month + 1, 1)
+        bookings = Booking.query.filter(
+            Booking.carrier_id == current_user.id,
+            Booking.due_date >= start,
+            Booking.due_date < end
+        ).all()
+        amounts = {}
+        for booking in bookings:
+            balance = totals(booking)
+            currency = booking.currency
+            row = amounts.setdefault(currency, {"receivable": Decimal("0.00"), "payable": Decimal("0.00")})
+            row["receivable"] += max(Decimal("0.00"), balance["receivable"])
+            row["payable"] += max(Decimal("0.00"), balance["payable"])
+        return {"carrier_monthly_due": amounts, "carrier_month_label": start.strftime("%Y-%m")}
+
     @bp.before_request
     def check_access():
         guard()
