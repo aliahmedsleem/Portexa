@@ -1,13 +1,51 @@
 {% extends "provider_base.html" %}
-{% block title %}لوحة التحكم{% endblock %}
+{% block title %}لوحة التحكم | PORTEXA{% endblock %}
 {% block content %}
 {% set is_clearer_dash = provider_kind == 'clearer' %}
-<div class="mb-4 portexa-list-heading"><h4 class="mb-1">لوحة التحكم</h4><div class="text-muted small">ملخص سريع للطلبات المرتبطة بحسابك.</div></div>
-<div class="row g-3">
-  <div class="col-md-3"><div class="stat-card"><span>إجمالي الطلبات</span><strong>{{ stats.orders }}</strong></div></div>
-  <div class="col-md-3"><div class="stat-card warning"><span>{{ 'حاويات بالانتظار' if is_clearer_dash else 'حاويات بانتظار النقل' }}</span><strong>{{ stats.waiting }}</strong></div></div>
-  <div class="col-md-3"><div class="stat-card info"><span>{{ 'قيد التخليص' if is_clearer_dash else 'قيد الشحن' }}</span><strong>{{ stats.clearing }}</strong></div></div>
-  <div class="col-md-3"><div class="stat-card success"><span>منجزة</span><strong>{{ stats.done }}</strong></div></div>
+<style>
+.px-dash-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.3rem}
+.px-dash-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+.px-dash-card{min-width:0;border:1px solid var(--bs-border-color,#e2e8f0);border-radius:18px;padding:1.25rem;background:var(--bs-body-bg,#fff);box-shadow:0 5px 20px rgba(12,25,55,.055);display:flex;flex-direction:column;gap:.65rem;position:relative;overflow:hidden}
+.px-dash-card:before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--accent,#4069aa)}
+.px-dash-card .px-label{font-size:.88rem;color:var(--bs-secondary-color,#64748b);font-weight:600}
+.px-dash-card .px-value{font-size:clamp(1.65rem,3vw,2.3rem);font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums}
+.px-dash-card .px-sub{font-size:.8rem;color:var(--bs-secondary-color,#64748b)}
+.px-dash-card.wait{--accent:#d69b32}.px-dash-card.transit{--accent:#2688b7}.px-dash-card.done{--accent:#219775}.px-dash-card.orders{--accent:#5266ba}.px-dash-card.due{--accent:#b87932}.px-dash-card.pay{--accent:#8b63b6}
+.px-finance-title{margin:1.65rem 0 .85rem;font-weight:750;font-size:1.05rem}
+.px-finance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.px-currency{font-size:.85rem;font-weight:700;margin-inline-start:.35rem;opacity:.8}
+.px-dash-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.5rem}
+@media(max-width:1050px){.px-dash-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.px-dash-grid,.px-finance-grid{grid-template-columns:1fr}.px-dash-card{padding:1rem}.px-dash-actions a{flex:1 1 100%}}
+</style>
+<div class="px-dash-head">
+<div><h3 class="mb-1">لوحة التحكم</h3><div class="text-muted small">نظرة سريعة على طلبات النقل والحجوزات المرتبطة بحسابك.</div></div>
 </div>
-<div class="card border-0 shadow-sm mt-4"><div class="card-body d-flex flex-wrap gap-2"><a class="btn btn-primary" href="{{ url_for('clearer_orders' if is_clearer_dash else 'carrier_orders') }}">عرض الطلبات</a><a class="btn btn-outline-primary" href="{{ url_for('clearer_financial_report' if is_clearer_dash else 'carrier_financial_report') }}">التقرير المالي</a></div></div>
+<div class="px-dash-grid">
+<div class="px-dash-card orders"><span class="px-label">إجمالي الطلبات</span><strong class="px-value">{{ stats.orders }}</strong><span class="px-sub">الطلبات المسندة للحساب</span></div>
+<div class="px-dash-card wait"><span class="px-label">{{ 'حاويات بالانتظار' if is_clearer_dash else 'حاويات بانتظار النقل' }}</span><strong class="px-value">{{ stats.waiting }}</strong><span class="px-sub">لم يبدأ العمل عليها بعد</span></div>
+<div class="px-dash-card transit"><span class="px-label">{{ 'قيد التخليص' if is_clearer_dash else 'قيد الشحن' }}</span><strong class="px-value">{{ stats.clearing }}</strong><span class="px-sub">حاويات قيد التنفيذ</span></div>
+<div class="px-dash-card done"><span class="px-label">الحاويات المنجزة</span><strong class="px-value">{{ stats.done }}</strong><span class="px-sub">العمليات المكتملة</span></div>
+</div>
+{% if not is_clearer_dash %}
+<h5 class="px-finance-title">المبالغ المستحقة خلال الشهر الحالي <span class="text-muted small">({{ carrier_month_label|default('') }})</span></h5>
+<div class="px-finance-grid">
+<div class="px-dash-card due"><span class="px-label">مستحقات لنا على الزبائن</span>
+{% if carrier_monthly_due|default({}) %}
+{% for currency,amount in carrier_monthly_due.items() %}<strong class="px-value">{{ "{:,.2f}".format(amount.receivable) }} <span class="px-currency">{{ currency }}</span></strong>{% endfor %}
+{% else %}<strong class="px-value">0.00</strong>{% endif %}
+<span class="px-sub">الرصيد غير المقبوض للحجوزات الخارجية المستحقة هذا الشهر</span></div>
+<div class="px-dash-card pay"><span class="px-label">مستحقات لمقدمي الخدمات</span>
+{% if carrier_monthly_due|default({}) %}
+{% for currency,amount in carrier_monthly_due.items() %}<strong class="px-value">{{ "{:,.2f}".format(amount.payable) }} <span class="px-currency">{{ currency }}</span></strong>{% endfor %}
+{% else %}<strong class="px-value">0.00</strong>{% endif %}
+<span class="px-sub">الرصيد غير المدفوع للحجوزات الخارجية المستحقة هذا الشهر</span></div>
+</div>
+<p class="text-muted small mt-2">تُحسب الأرصدة بعد خصم الدفعات المسجلة، وتُعرض كل عملة بصورة مستقلة. لا تشمل المتأخرات من الأشهر السابقة أو طلبات النقل التقليدية.</p>
+{% endif %}
+<div class="px-dash-actions">
+<a class="btn btn-primary" href="{{ url_for('clearer_orders' if is_clearer_dash else 'carrier_orders') }}">عرض الطلبات</a>
+{% if not is_clearer_dash %}<a class="btn btn-outline-primary" href="{{ url_for('carrier_bookings.index') }}">الحجوزات الخارجية</a>{% endif %}
+<a class="btn btn-outline-secondary" href="{{ url_for('clearer_financial_report' if is_clearer_dash else 'carrier_financial_report') }}">التقرير المالي</a>
+</div>
 {% endblock %}
