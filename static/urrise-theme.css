@@ -177,3 +177,43 @@ form textarea.form-control{min-height:100px}
 .service-card,.provider-card{min-width:0;overflow-wrap:anywhere}
 .service-card .btn,.provider-card .btn{white-space:normal}
 @media(max-width:767.98px){.provider-body .stat-card{padding:18px}.ad-admin-img{height:165px}.provider-body .card-body,.advertiser-body .card-body{min-width:0}}
+
+
+/* Final-pass responsive refinements: long content, forms, focus and print */
+.app-content,.page-container,.card,.card-body,.row>[class*="col-"]{min-width:0}
+.page-container{max-width:100%;overflow-wrap:break-word}
+.table-responsive{overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+.table-responsive table{margin-bottom:0}
+.table td,.table th{white-space:normal}
+.table td{overflow-wrap:anywhere}
+input[type="date"],input[type="datetime-local"],select{min-width:0}
+.form-control:focus,.form-select:focus{border-color:#bd9654;box-shadow:0 0 0 .2rem rgba(184,137,53,.15)}
+.alert{border-radius:13px;line-height:1.7}
+.alert-info{background:#eef4f9;border-color:#d7e5f1;color:#244766}
+.alert-warning{background:#fff7e8;border-color:#f1ddb4;color:#6c5124}
+.alert-danger{background:#fff0ef;border-color:#f2d3cf;color:#873c37}
+.badge{font-weight:700;line-height:1.4;padding:.45em .65em}
+.card .card-header{background:#fafbfc;border-bottom:1px solid #e8ebf0;font-weight:800}
+.btn{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:normal;text-align:center}
+.btn.btn-sm{min-height:32px}
+.btn-close{min-height:auto}
+@media(max-width:575.98px){
+ .page-container{padding-inline:12px!important}
+ .card{border-radius:15px}
+ .card-body{padding:16px}
+ .portexa-list-heading{padding:16px}
+ .portexa-list-heading h4{line-height:1.6}
+ .btn{line-height:1.4}
+ .modal-body .table-responsive{margin-inline:0}
+ .row.g-3{--bs-gutter-x:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ .portexa-metric,.sidebar-link,.btn,.ticket-card{transition:none!important}
+}
+@media print{
+ .app-sidebar,.mobile-topbar,.offcanvas,.app-footer,.bottom-ads-section,.sidebar-footer,.btn-logout{display:none!important}
+ .app-content{margin:0!important;width:100%!important}
+ .page-container{padding:0!important}
+ .card,.portexa-metric{box-shadow:none!important;break-inside:avoid}
+ .table-responsive{overflow:visible!important}
+}
