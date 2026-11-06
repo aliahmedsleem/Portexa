@@ -6,3 +6,4 @@ python-bidi==0.4.2
 flask-login
 werkzeug
 requests
+pywebpush>=2.0,<3
