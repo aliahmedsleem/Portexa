@@ -2362,6 +2362,8 @@ def admin_clearers_new():
         user.set_password(password)
         _save_provider_user(user, "clearer", request.form, is_new=True)
         db.session.add(user)
+        for administrator in User.query.filter_by(is_admin=True).all():
+            create_notification(administrator.id, "حساب مخلص جديد", f"تم إنشاء الحساب: {user.username}.", url_for("admin_clearers"))
         db.session.commit()
         flash("تم إنشاء حساب المخلص بنجاح.", "success")
         return redirect(url_for("admin_clearers"))
@@ -2424,6 +2426,8 @@ def admin_carriers_new():
         user.set_password(password)
         _save_provider_user(user, "carrier", request.form, is_new=True)
         db.session.add(user)
+        for administrator in User.query.filter_by(is_admin=True).all():
+            create_notification(administrator.id, "حساب شركة نقل جديد", f"تم إنشاء الحساب: {user.username}.", url_for("admin_carriers"))
         db.session.commit()
         flash("تم إنشاء حساب شركة النقل بنجاح.", "success")
         return redirect(url_for("admin_carriers"))
@@ -2495,6 +2499,8 @@ def admin_support_users_new():
         user.starts_at = datetime.utcnow()
         user.expires_at = plan_to_expiry("YEARLY")
         db.session.add(user)
+        for administrator in User.query.filter_by(is_admin=True).all():
+            create_notification(administrator.id, "حساب دعم فني جديد", f"تم إنشاء الحساب: {user.username}.", url_for("admin_support_users"))
         db.session.commit()
         flash("تم إنشاء موظف دعم فني بنجاح.", "success")
         return redirect(url_for("admin_support_users"))
