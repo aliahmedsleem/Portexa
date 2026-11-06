@@ -2,6 +2,9 @@
 Does not create invoices, update subscriptions, or change prices.
 """
 from sqlalchemy import func, inspect
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 def main():
     from app import app, db, User, SubscriptionInvoice, SubscriptionPrice
