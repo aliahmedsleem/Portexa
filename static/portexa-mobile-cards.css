@@ -67,3 +67,20 @@
  .portexa-shipment-container__danger .btn{font-size:.75rem;text-decoration:none;padding:5px 2px;min-height:30px}
 }
 @media(max-width:350px){.portexa-shipment-container__main-actions{grid-template-columns:1fr}.portexa-shipment-container__header{flex-wrap:wrap}.portexa-shipment-container__status{max-width:100%}}
+
+/* Shipment list V3: unambiguous separation and containment */
+@media(max-width:767.98px){
+ .portexa-shipment-list{gap:0!important;display:flex!important;flex-direction:column!important;align-items:stretch!important}
+ .portexa-shipment-container{display:block!important;position:relative!important;isolation:isolate;clear:both;width:100%!important;max-width:100%!important;margin:0 0 26px!important;border:2px solid #cbd5e1!important;border-top:5px solid #b88935!important;border-radius:18px!important;box-shadow:0 9px 24px rgba(15,29,52,.13)!important;overflow:hidden!important;background:#fff!important}
+ .portexa-shipment-container:not(:last-of-type)::after{content:none}
+ .portexa-shipment-container__header,.portexa-shipment-container__body,.portexa-shipment-container__footer{display:block;position:relative;clear:both;width:100%;box-sizing:border-box}
+ .portexa-shipment-container__header{display:flex!important}
+ .portexa-shipment-container__footer{background:#f1f4f8!important;border-top:2px solid #dbe2eb!important}
+ .portexa-shipment-container__main-actions{display:grid!important}
+ .portexa-shipment-container__danger{border-top:1px dashed #d2dae5;padding-top:8px}
+ .portexa-shipment-container__field{overflow:hidden}
+ .portexa-shipment-container__field dd{word-break:normal!important;overflow-wrap:anywhere!important}
+ .portexa-shipment-container__main-actions .btn{white-space:normal!important}
+ .portexa-shipment-list__summary{margin-bottom:14px}
+ .portexa-shipment-container + .portexa-shipment-container{margin-top:6px!important}
+}
