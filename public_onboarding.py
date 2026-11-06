@@ -184,7 +184,8 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
                         license_key=generate_license_key(),
                         license_activated=True, is_active=True,
                     )
-                    # Existing User schema has no dedicated business_name column; retain it in address metadata.\n                    user.set_password(secrets.token_urlsafe(48))
+                    # Existing User schema has no dedicated business_name column; retain it in address metadata.
+                    user.set_password(secrets.token_urlsafe(48))
                     try:
                         db.session.add(user)
                         db.session.commit()
