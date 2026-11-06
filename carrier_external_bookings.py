@@ -66,6 +66,14 @@ def register_carrier_bookings(app, db, tracking_lookup, notify):
         created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
         __table_args__ = (CheckConstraint("amount > 0"), CheckConstraint("direction IN ('CUSTOMER','PROVIDER')"),)
 
+    class Reminder(db.Model):
+        __tablename__ = "carrier_payment_reminder"
+        id = db.Column(db.Integer, primary_key=True)
+        booking_id = db.Column(db.Integer, db.ForeignKey("carrier_external_booking.id"), nullable=False, index=True)
+        direction = db.Column(db.String(12), nullable=False)
+        reminder_day = db.Column(db.Date, nullable=False)
+        __table_args__ = (UniqueConstraint("booking_id", "direction", "reminder_day", name="uq_carrier_payment_reminder"),)
+
     def csrf():
         if "carrier_booking_csrf" not in session:
             session["carrier_booking_csrf"] = secrets.token_urlsafe(32)
