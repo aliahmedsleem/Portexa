@@ -107,7 +107,19 @@
       <a class="btn btn-sm btn-success" href="{{ url_for('reports_pdf_from_last_preview') }}">تصدير PDF</a>
     </div>
 
-    <div class="table-responsive">
+    <div class="portexa-mobile-only portexa-card-list">
+      {% for s in shipments %}
+      <article class="portexa-data-card">
+        <div class="portexa-data-card__head"><strong class="portexa-data-card__title">الشحنة #{{ s.id }}</strong></div>
+        <dl class="portexa-data-card__fields">
+          {% for field in report_fields %}
+          <div class="portexa-data-card__field"><dt>{{ report_field_labels.get(field, field) }}</dt><dd>{% if field == 'status' %}{% set st = status_badge(s.status) %}<span class="badge text-bg-{{ st[1] }}">{{ st[0] }}</span>{% else %}{{ report_value(s, field) }}{% endif %}</dd></div>
+          {% endfor %}
+        </dl>
+      </article>
+      {% else %}<div class="portexa-data-card text-center text-muted">لا توجد نتائج حسب الفلاتر.</div>{% endfor %}
+    </div>
+    <div class="table-responsive portexa-desktop-only">
       <table class="table align-middle report-table">
         <thead class="table-light">
           <tr>
