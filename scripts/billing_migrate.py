@@ -1,33 +1,66 @@
-"""Safe, explicit schema setup for PORTEXA billing.
-Run only after integrating the billing blueprint into the *local* app.py,
-with the service's normal virtualenv and DATABASE_URL. No customer data changes.
+"""Explicit, guarded billing schema migration for an existing PORTEXA deployment.
+
+Import the app from --app-dir, not the Git checkout containing this script.
+A read-only dry run is the default. --apply requires --expected-db.
 """
 import argparse
-from sqlalchemy import inspect
-from pathlib import Path
+import os
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from pathlib import Path
+
+from sqlalchemy import inspect
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--apply", action="store_true", help="Create only missing billing tables")
+    parser.add_argument("--app-dir", type=Path, default=Path.cwd(),
+                        help="Directory containing the deployed app.py")
+    parser.add_argument("--expected-db", type=Path,
+                        help="Exact SQLite file to verify before writing")
+    parser.add_argument("--apply", action="store_true",
+                        help="Create only missing billing tables")
     args = parser.parse_args()
-    # NOTE: importing legacy app.py runs its existing startup migrations.
-    # Always use the production virtualenv and take a verified DB backup first.
+
+    app_dir = args.app_dir.resolve(strict=True)
+    if not (app_dir / "app.py").is_file():
+        parser.error(f"No app.py found in {app_dir}")
+    if args.apply and not args.expected_db:
+        parser.error("--apply requires --expected-db")
+    if args.expected_db and not args.expected_db.resolve(strict=False).is_file():
+        parser.error("Expected database does not exist; refusing to create a new one")
+
+    # This legacy app runs startup setup during import. Use the intended deployment
+    # directory and ensure the checkout cannot be imported instead.
+    os.chdir(app_dir)
+    sys.path.insert(0, str(app_dir))
     from app import app, db, SubscriptionInvoice, SubscriptionPrice
+
     with app.app_context():
         engine = db.engine
+        if engine.dialect.name != "sqlite":
+            parser.error("This guarded migration currently supports SQLite only")
+        actual = Path(engine.url.database).resolve(strict=False)
+        print("Application directory:", app_dir)
+        print("Actual database:", actual)
+        if args.expected_db:
+            expected = args.expected_db.resolve(strict=True)
+            if actual != expected:
+                parser.error(f"Database mismatch: expected {expected}, got {actual}")
+        else:
+            print("WARNING: no --expected-db supplied; dry run only")
+
         names = set(inspect(engine).get_table_names())
-        expected = (SubscriptionInvoice.__table__, SubscriptionPrice.__table__)
-        for table in expected:
-            print(("%s " % table.name) + ("EXISTS" if table.name in names else "MISSING"))
+        tables = (SubscriptionInvoice.__table__, SubscriptionPrice.__table__)
+        for table in tables:
+            print(f"{table.name}: {'EXISTS' if table.name in names else 'MISSING'}")
         if not args.apply:
-            print("DRY RUN. Use --apply after database backup and staging test.")
+            print("DRY RUN. No billing tables created.")
             return
         with engine.begin() as connection:
-            for table in expected:
+            for table in tables:
                 table.create(bind=connection, checkfirst=True)
         print("Billing schema ready. No prices or invoices inserted.")
+
 
 if __name__ == "__main__":
     main()
