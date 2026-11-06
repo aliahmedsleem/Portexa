@@ -43,12 +43,12 @@
   </aside>
 
   <div class="mobile-topbar d-lg-none admin-topbar">
-    <button class="sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminMobileSidebar">☰</button>
+    <button class="sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminMobileSidebar" aria-controls="adminMobileSidebar" aria-label="فتح قائمة الإدارة">☰</button>
     <a class="mobile-brand" href="{{ url_for('admin_users') }}">PORTEXA | الإدارة</a>
   </div>
 
   <div class="offcanvas offcanvas-end mobile-sidebar admin-mobile-sidebar" tabindex="-1" id="adminMobileSidebar">
-    <div class="offcanvas-header"><h5 class="offcanvas-title">قائمة مدير النظام</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button></div>
+    <div class="offcanvas-header"><h5 class="offcanvas-title">قائمة مدير النظام</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق القائمة"></button></div>
     <div class="offcanvas-body">
       <nav class="sidebar-nav mobile-nav">
         <div class="sidebar-section-title">مستخدمي النظام</div>
