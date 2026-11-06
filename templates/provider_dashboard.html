@@ -2,7 +2,7 @@
 {% block title %}لوحة التحكم{% endblock %}
 {% block content %}
 {% set is_clearer_dash = provider_kind == 'clearer' %}
-<div class="mb-4"><h4 class="mb-1">لوحة التحكم</h4><div class="text-muted small">ملخص سريع للطلبات المرتبطة بحسابك.</div></div>
+<div class="mb-4 portexa-list-heading"><h4 class="mb-1">لوحة التحكم</h4><div class="text-muted small">ملخص سريع للطلبات المرتبطة بحسابك.</div></div>
 <div class="row g-3">
   <div class="col-md-3"><div class="stat-card"><span>إجمالي الطلبات</span><strong>{{ stats.orders }}</strong></div></div>
   <div class="col-md-3"><div class="stat-card warning"><span>{{ 'حاويات بالانتظار' if is_clearer_dash else 'حاويات بانتظار النقل' }}</span><strong>{{ stats.waiting }}</strong></div></div>
