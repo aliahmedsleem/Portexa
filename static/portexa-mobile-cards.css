@@ -99,3 +99,15 @@
  .mobile-sidebar .sidebar-nav .sidebar-link.active{background:rgba(184,137,53,.13)!important;color:#ad7b26!important;font-weight:900!important;border-radius:10px}
  .mobile-sidebar .sidebar-nav .sidebar-link{min-height:43px;display:flex;align-items:center}
 }
+
+/* Notifications v5 */
+.portexa-notification-filters{display:flex;flex-wrap:wrap;gap:7px}
+.portexa-notification-items{display:grid;gap:12px}
+.portexa-notification-item{display:block;text-decoration:none;color:#1c2d44;background:#fff;border:1px solid #dce3ed;border-right:4px solid #cbd5e1;border-radius:15px;padding:15px 17px;box-shadow:0 4px 14px rgba(20,35,55,.05);overflow-wrap:anywhere}
+.portexa-notification-item:hover{color:#1c2d44;border-color:#b88935}
+.portexa-notification-item.is-unread{border-right-color:#b88935;background:#fffcf5}
+.portexa-notification-item__top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:9px}
+.portexa-notification-item strong{display:block;font-size:.97rem}
+.portexa-notification-item p{color:#63748c;font-size:.85rem;margin:6px 0}
+.portexa-notification-item__state{font-size:.72rem;font-weight:700;color:#92702e}
+@media(max-width:767.98px){.portexa-notification-item{padding:14px}.portexa-notification-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px}.portexa-notification-filters .btn{white-space:nowrap;flex-shrink:0}}
