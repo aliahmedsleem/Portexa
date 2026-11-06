@@ -38,8 +38,8 @@
 </div>
 
 <div class="card border-0 shadow-sm">
-  <div class="card-body table-responsive">
-    <table class="table align-middle">
+  <div class="card-body">\n    <div class="table-responsive admin-users-table-wrap">
+    <table class="table align-middle admin-users-table">
       <thead class="table-light">
         <tr>
           <th>#</th>
@@ -63,9 +63,9 @@
           <td class="fw-bold">{{ u.username }}</td>
           <td>{{ u.company_name or '-' }}</td>
           <td>{{ u.owner_name or '-' }}</td>
-          <td>{{ u.phone or '-' }}</td>
-          <td>{{ u.email or '-' }}</td>
-          <td>{{ u.address or '-' }}</td>
+          <td class="admin-users-contact" dir="ltr">{{ u.phone or '-' }}</td>
+          <td class="admin-users-contact" dir="ltr">{{ u.email or '-' }}</td>
+          <td class="admin-users-address">{{ u.address or '-' }}</td>
           <td>
             {% if u.is_admin %}
               <span class="badge text-bg-dark">مدير النظام</span>
@@ -73,7 +73,7 @@
               <span class="badge text-bg-primary">تاجر</span>
             {% endif %}
           </td>
-          <td>{{ u.plan_type }}</td>
+          <td class="admin-users-plan">{{ {'TRIAL': 'تجريبي', 'MONTHLY': 'شهري', 'YEARLY': 'سنوي', 'TWO_YEARS': 'سنتان'}.get(u.plan_type, u.plan_type) }}</td>
           <td>
             {% if u.status_text() == "فعال" %}
               <span class="badge text-bg-success">فعال</span>
@@ -81,13 +81,13 @@
               <span class="badge text-bg-danger">غير فعال</span>
             {% endif %}
           </td>
-          <td>{{ u.remaining_days() }} يوم</td>
-          <td class="text-end">
-            <div class="d-flex gap-2 justify-content-end flex-wrap">
-              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_users_edit', user_id=u.id) }}">عرض/تعديل</a>
+          <td class="admin-users-days">{{ u.remaining_days() }} يوم</td>
+          <td class="admin-users-actions">
+            <div class="admin-users-action-group">
+              <a class="btn btn-sm btn-outline-primary admin-users-action-btn" href="{{ url_for('admin_users_edit', user_id=u.id) }}">عرض/تعديل</a>
               {% if not u.is_admin %}
               <form method="post" action="{{ url_for('admin_users_delete', user_id=u.id) }}" onsubmit="return confirm('هل تريد حذف هذا المستخدم؟');">
-                <button class="btn btn-sm btn-outline-danger">حذف</button>
+                <button class="btn btn-sm btn-outline-danger admin-users-action-btn">حذف</button>
               </form>
               {% endif %}
             </div>
