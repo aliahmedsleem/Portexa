@@ -7,7 +7,7 @@
 .external-field label{display:block;font-weight:600;margin-bottom:.3rem}.external-field .form-control,.external-field .form-select{width:100%;min-width:0}
 .external-card{background:var(--bs-body-bg,#fff);border:1px solid var(--bs-border-color,#ddd);border-radius:14px;padding:1.2rem;margin-bottom:1rem;overflow-wrap:anywhere}
 .external-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem}
-.external-metric{font-size:1.3rem;font-weight:700}.external-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.external-metric{font-size:1.3rem;font-weight:700}.external-actions{display:flex;flex-wrap:wrap;gap:.5rem}.directory-item[hidden]{display:none!important}.directory-item .external-actions{margin-top:1rem}.directory-item{display:flex;flex-direction:column;justify-content:space-between}
 @media(max-width:700px){.external-grid{grid-template-columns:1fr}.external-card{padding:.9rem}.external-nav a{flex:1 1 44%;text-align:center}.external-actions .btn{flex:1 1 100%}}
 </style>
 <div class="external-wrap">
@@ -39,22 +39,53 @@
 <div class="external-field d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">حفظ الشركة</button></div>
 </form>
 </section>
+<div class="external-card"><label for="directory-search">بحث في الشركات</label><input id="directory-search" class="form-control" type="search" placeholder="الاسم أو الهاتف" oninput="document.querySelectorAll('.directory-item').forEach(e=>e.hidden=!e.dataset.search.includes(this.value.toLowerCase()))"></div>
 <div class="external-list">
 {% for item in (customers if is_customer else providers) %}
-<article class="external-card"><strong>{{ item.name }}</strong><div class="text-muted">{{ item.phone or 'لا يوجد هاتف' }}</div>{% if is_customer %}<small>{{ item.contact or '' }}</small>{% endif %}</article>
-{% else %}<p class="text-muted">لا توجد شركات محفوظة بعد.</p>{% endfor %}
+<article class="external-card directory-item" data-search="{{ (item.name ~ ' ' ~ (item.phone or ''))|lower }}">
+<h5>{{ item.name }}</h5><div class="text-muted">{{ item.phone or 'لا يوجد هاتف' }}</div>
+{% if is_customer %}<p>{{ item.contact or '' }} {{ item.email or '' }} {{ item.address or '' }}</p>{% else %}<p>{{ item.notes or '' }}</p>{% endif %}
+<div class="external-actions">
+<a class="btn btn-outline-primary btn-sm" href="{{ url_for('carrier_bookings.edit_customer' if is_customer else 'carrier_bookings.edit_provider', item_id=item.id) }}">عرض وتعديل</a>
+<form method="post" action="{{ url_for('carrier_bookings.delete_customer' if is_customer else 'carrier_bookings.delete_provider', item_id=item.id) }}" onsubmit="return confirm('تأكيد الحذف؟')"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn-outline-danger btn-sm" type="submit">حذف</button></form>
+</div></article>
+{% else %}<p>لا توجد شركات محفوظة.</p>{% endfor %}
 </div>
+{% elif view == 'edit_customer' or view == 'edit_provider' %}
+{% set is_customer = view == 'edit_customer' %}
+<section class="external-card"><h5>عرض وتعديل {{ 'الزبون' if is_customer else 'مقدم الخدمة' }}</h5>
+<form method="post" class="external-grid"><input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="external-field"><label>اسم الشركة</label><input class="form-control" name="name" required maxlength="220" value="{{ item.name }}"></div>
+<div class="external-field"><label>الهاتف</label><input class="form-control" name="phone" value="{{ item.phone or '' }}"></div>
+{% if is_customer %}
+<div class="external-field"><label>مسؤول التواصل</label><input class="form-control" name="contact" value="{{ item.contact or '' }}"></div>
+<div class="external-field"><label>البريد</label><input class="form-control" name="email" type="email" value="{{ item.email or '' }}"></div>
+<div class="external-field"><label>العنوان</label><input class="form-control" name="address" value="{{ item.address or '' }}"></div>
+{% else %}<div class="external-field"><label>ملاحظات</label><textarea class="form-control" name="notes">{{ item.notes or '' }}</textarea></div>{% endif %}
+<div class="external-actions"><button class="btn btn-primary" type="submit">حفظ التعديلات</button><a class="btn btn-outline-secondary" href="{{ url_for('carrier_bookings.customers' if is_customer else 'carrier_bookings.providers') }}">رجوع</a></div>
+</form></section>
 {% elif view == 'new' %}
 <section class="external-card">
 <h5>بيانات الحجز</h5>
 {% if not customers or not providers %}<div class="alert alert-warning">أضف زبوناً ومقدم خدمة أولاً.</div>{% endif %}
 <form method="post" class="external-grid">
 <input type="hidden" name="_csrf" value="{{ csrf }}">
-<div class="external-field"><label for="customer_id">الزبون *</label><select class="form-select" id="customer_id" name="customer_id" required><option value="">اختر الزبون</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
-<div class="external-field"><label for="provider_id">مقدم الخدمة *</label><select class="form-select" id="provider_id" name="provider_id" required><option value="">اختر مقدم الخدمة</option>{% for p in providers %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>
+<div class="external-field"><label for="customer_search">الزبون *</label><input class="form-control" type="search" id="customer_search" list="customer_options" placeholder="ابحث عن الزبون..." autocomplete="off" required><datalist id="customer_options">{% for item in customers %}<option value="{{ item.name }} ({{ item.id }})">{% endfor %}</datalist><input type="hidden" id="customer_id" name="customer_id"><small class="text-muted">اختر اسماً من نتائج البحث</small></div>
+<div class="external-field"><label for="provider_search">مقدم الخدمة *</label><input class="form-control" type="search" id="provider_search" list="provider_options" placeholder="ابحث عن مقدم الخدمة..." autocomplete="off" required><datalist id="provider_options">{% for item in providers %}<option value="{{ item.name }} ({{ item.id }})">{% endfor %}</datalist><input type="hidden" id="provider_id" name="provider_id"><small class="text-muted">اختر اسماً من نتائج البحث</small></div>
 {% for key,label,type in [('bl_number','رقم بوليصة الشحن B/L','text'),('bl_date','تاريخ البوليصة','date'),('origin_port','ميناء الانطلاق','text'),('destination_port','ميناء الوجهة','text'),('shipping_line','الخط الملاحي / رمز التتبع','text'),('containers','عدد الحاويات','number'),('departure_date','تاريخ المغادرة','date'),('arrival_date','تاريخ الوصول المتوقع','date'),('due_date','تاريخ استحقاق الدفع','date'),('sale_amount','المبلغ المطلوب من الزبون','number'),('provider_cost','تكلفة مقدم الخدمة','number')] %}
 <div class="external-field"><label for="{{ key }}">{{ label }}{% if key in ['bl_number','bl_date','origin_port','destination_port','shipping_line','containers','due_date','sale_amount','provider_cost'] %} *{% endif %}</label><input class="form-control" id="{{ key }}" name="{{ key }}" type="{{ type }}" {% if type == 'number' %}min="{{ 1 if key == 'containers' else 0 }}" step="{{ 1 if key == 'containers' else '0.01' }}"{% endif %} {% if key in ['bl_number','bl_date','origin_port','destination_port','shipping_line','containers','due_date','sale_amount','provider_cost'] %}required{% endif %}></div>
 {% endfor %}
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+for(const kind of ['customer','provider']){
+const input=document.getElementById(kind+'_search'),hidden=document.getElementById(kind+'_id');
+if(!input||!hidden)continue;
+const update=()=>{const match=input.value.match(/\\((\\d+)\\)$/);hidden.value=match?match[1]:'';input.setCustomValidity(hidden.value?'':'اختر شركة من نتائج البحث')};
+input.addEventListener('input',update);input.addEventListener('change',update);
+const form=input.closest('form');form.addEventListener('submit',update);
+}
+});
+</script>
 <div class="external-field"><label for="currency">العملة</label><select class="form-select" id="currency" name="currency"><option>USD</option><option>IQD</option></select></div>
 <div class="external-field"><label for="container_details">أرقام وأنواع الحاويات</label><textarea class="form-control" id="container_details" name="container_details" rows="2"></textarea></div>
 <div class="external-field"><label for="notes">ملاحظات</label><textarea class="form-control" id="notes" name="notes" rows="2"></textarea></div>
