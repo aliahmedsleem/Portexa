@@ -58,3 +58,21 @@ Use the same Python virtualenv, DATABASE_URL and environment variables as the ru
 - Remove or rotate default bootstrap passwords (`admin123`) securely.
 - Existing local bootstrap code resets privileged account activation/expiry on startup; audit and fix separately.
 - Enforce CSRF protection on existing legacy admin forms too.
+
+
+## Updated explicit migration and read-only verification
+
+After copying `subscription_billing.py` and integrating its registration into the server-local `app.py`, **do not copy the repository app.py over the server-local version**.
+
+Use the same Python interpreter and environment variables as the production service:
+
+```bash
+# On a staging database first; do not point to production before review.
+python scripts/billing_migrate.py
+python scripts/billing_migrate.py --apply
+python scripts/billing_verify.py
+```
+
+Before a production migration, take a consistent SQLite backup using the SQLite backup API (or a database-native PostgreSQL backup), not a blind copy of a live database. Review the app's effective `DATABASE_URL` and service environment first. Never place credentials or payment references in public logs.
+
+**Do not schedule `billing-renewals` yet.** Existing manual activation and deactivation paths remain available in the legacy admin user editor, so a fully unified subscription state machine and administrative suspension state are still required. The new finance module is a controlled pilot, not a completed automatic billing service.
