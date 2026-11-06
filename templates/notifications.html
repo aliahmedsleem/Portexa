@@ -1,15 +1,35 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" if current_user.is_admin else "support_base.html" if current_user.is_support else "advertiser_base.html" if current_user.is_advertiser else "provider_base.html" if current_user.is_clearer or current_user.is_carrier else "base.html" %}
+{% block title %}مركز الإشعارات | PORTEXA{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4"><div><h4 class="mb-1">الإشعارات</h4><div class="text-muted small">آخر التحديثات الخاصة بالشحنات، التخليص، النقل، والتذاكر.</div></div></div>
-<div class="card border-0 shadow-sm"><div class="card-body p-0">
-{% for n in notifications %}
-<a class="notification-row {{ '' if n.is_read else 'unread' }}" href="{{ url_for('notification_open', notification_id=n.id) }}">
-  <div class="notification-dot"></div>
-  <div class="flex-grow-1"><div class="fw-bold">{{ n.title }}</div><div class="small text-muted">{{ n.body or '' }}</div></div>
-  <div class="small text-muted">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-</a>
-{% else %}
-<div class="text-center text-muted py-5">لا توجد إشعارات حالياً.</div>
-{% endfor %}
-</div></div>
+<section class="portexa-notification-center">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div><h4 class="mb-1">مركز الإشعارات</h4><p class="small text-muted mb-0">التحديثات الخاصة بحسابك فقط، مرتبة من الأحدث إلى الأقدم.</p></div>
+    <form method="post" action="{{ url_for('notifications_read_all') }}"><button class="btn btn-outline-primary btn-sm" type="submit" {% if not notification_count() %}disabled{% endif %}>تحديد الكل كمقروء</button></form>
+  </div>
+  <div class="portexa-notification-filters" aria-label="تصنيف الإشعارات">
+    {% for key, label in categories.items() %}
+      <a href="{{ url_for('notifications_list', category=key, unread='1' if unread_only else '0') }}" class="btn btn-sm {{ 'btn-primary' if selected == key else 'btn-outline-secondary' }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <div class="d-flex align-items-center gap-2 my-3">
+    <a class="btn btn-sm {{ 'btn-outline-primary' if unread_only else 'btn-primary' }}" href="{{ url_for('notifications_list', category=selected) }}">جميع الحالات</a>
+    <a class="btn btn-sm {{ 'btn-primary' if unread_only else 'btn-outline-primary' }}" href="{{ url_for('notifications_list', category=selected, unread='1') }}">غير المقروءة</a>
+  </div>
+  <div class="portexa-notification-items">
+    {% for n in notifications %}
+    {% set category = notification_category(n) %}
+    <a class="portexa-notification-item {{ 'is-unread' if not n.is_read else '' }}" href="{{ url_for('notification_open', notification_id=n.id) }}">
+      <div class="portexa-notification-item__top">
+        <span class="badge text-bg-{{ category[2] }}">{{ category[0] }}</span>
+        <time class="small text-muted" datetime="{{ n.created_at.isoformat() }}">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</time>
+      </div>
+      <strong>{{ n.title }}</strong>
+      <p>{{ n.body or '' }}</p>
+      <span class="portexa-notification-item__state">{{ '● جديد' if not n.is_read else 'تمت القراءة' }}</span>
+    </a>
+    {% else %}
+    <div class="portexa-data-card text-center text-muted py-5">لا توجد إشعارات ضمن هذا التصنيف.</div>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}
