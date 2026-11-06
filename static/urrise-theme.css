@@ -1,0 +1,59 @@
+/* URRISE / PORTEXA unified brand layer — load after style.css */
+:root{
+  --bg-body:#f5f6f9;--bg-card:#fff;--sidebar-bg:#101d34;--sidebar-bg-2:#172c49;
+  --sidebar-active:#c79a44;--sidebar-active-soft:rgba(213,170,88,.18);
+  --accent:#b88935;--accent-2:#e0bd73;--text-main:#17243a;--text-muted:#687589;
+  --border-soft:#e6e9ef;--shadow-soft:0 12px 32px rgba(15,29,52,.07);
+  --bs-primary:#b88935;--bs-primary-rgb:184,137,53;--bs-link-color:#946a27;
+}
+html{scroll-behavior:smooth}
+body{font-family:"Cairo",Tahoma,"Segoe UI",sans-serif;line-height:1.65;overflow-x:hidden}
+.app-body{background:radial-gradient(circle at 5% 0%,rgba(213,170,88,.09),transparent 34rem),#f5f6f9}
+.app-sidebar,.mobile-sidebar{background:linear-gradient(155deg,#101d34,#192e4d)!important}
+.sidebar-brand,.sidebar-brand:hover{color:#fff}
+.brand-icon{background:linear-gradient(135deg,#a7792d,#e6c782)!important;color:#15223b!important;box-shadow:0 8px 22px rgba(213,170,88,.2)!important}
+.sidebar-link.active{background:rgba(213,170,88,.17)!important;color:#f4d99f!important;border-color:rgba(213,170,88,.3)!important}
+.sidebar-link:hover{background:rgba(255,255,255,.08)}
+.sidebar-section-title{color:#d9b56e!important}
+.app-content,.page-container{min-width:0}
+.page-container{max-width:1500px;width:100%;margin-inline:auto;padding-inline:clamp(14px,2.4vw,32px)}
+.card,.stat-card,.service-card,.dashboard-card,.quote-action-box{border-radius:18px!important;border:1px solid var(--border-soft);box-shadow:var(--shadow-soft);min-width:0}
+.card-body{padding:clamp(16px,2vw,26px)}
+.card-title,h1,h2,h3,h4,h5,h6{overflow-wrap:anywhere;line-height:1.45}
+.card p,.card span,.card strong,.card small{overflow-wrap:anywhere}
+.row>*{min-width:0}
+.btn{border-radius:11px;font-weight:700;padding:.55rem 1rem;white-space:normal}
+.btn-primary,.btn-primary:focus{background:#b88935!important;border-color:#b88935!important;color:#fff!important}
+.btn-primary:hover{background:#936c2c!important;border-color:#936c2c!important}
+.btn-outline-primary{border-color:#b88935!important;color:#926825!important}
+.btn-outline-primary:hover{background:#b88935!important;color:#fff!important}
+.form-control,.form-select{border-radius:11px;min-height:44px;border-color:#dce2eb}
+.form-control:focus,.form-select:focus{border-color:#c79a44;box-shadow:0 0 0 .2rem rgba(199,154,68,.15)}
+a{color:inherit}
+a:hover{color:#ad8136}
+.table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px}
+.table{vertical-align:middle;margin-bottom:0}
+.table>:not(caption)>*>*{padding:.8rem .9rem}
+.table thead th{background:#f3f5f8;color:#24344e;white-space:nowrap;font-weight:800}
+.badge{font-weight:700;white-space:normal;text-align:center;line-height:1.5}
+.alert{border-radius:12px}
+.app-footer{border-top:1px solid #e4e7ed;background:#fff}
+.mobile-topbar{background:#13243d!important;color:#fff}
+.mobile-brand{color:#f4d99f!important;font-weight:800}
+.auth-container{max-width:1200px}
+.portexa-auth{min-height:min(780px,calc(100dvh - 90px));display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);border-radius:26px;overflow:hidden;box-shadow:0 25px 70px rgba(12,28,50,.14);background:#fff}
+.portexa-auth-hero{background:radial-gradient(circle at 20% 20%,rgba(220,178,91,.2),transparent 45%),linear-gradient(145deg,#0f1e35,#1b3455);color:#fff;padding:clamp(28px,5vw,68px);display:flex;flex-direction:column;justify-content:space-between;gap:32px}
+.portexa-auth-hero .eyebrow{font-size:.85rem;color:#e4c68b;font-weight:800;letter-spacing:.06em}
+.portexa-auth-hero h1{font-size:clamp(2.3rem,5vw,4.2rem);font-weight:900;color:#f0cd83;margin:10px 0}
+.portexa-auth-hero p{font-size:clamp(1rem,1.7vw,1.25rem);max-width:34ch;line-height:2;color:#e4ebf5}
+.portexa-auth-hero .brand-line{width:78px;height:4px;border-radius:8px;background:#d7ad5e}
+.portexa-auth-panel{padding:clamp(25px,5vw,68px);display:flex;flex-direction:column;justify-content:center}
+.portexa-auth-panel h2{font-weight:900;color:#172942}
+.portexa-auth-panel .auth-subtitle{color:#6c7789;margin-bottom:28px}
+.portexa-auth-panel .form-label{font-weight:800;color:#26354d}
+.portexa-auth-panel .btn-primary{min-height:49px}
+.portexa-auth-company{font-size:.82rem;color:#9eafc7}
+.portexa-auth-legal{font-size:.82rem;color:#738095;text-align:center;margin-top:30px}
+@media(max-width:991.98px){.portexa-auth{grid-template-columns:1fr;min-height:0}.portexa-auth-hero{padding:28px;gap:15px}.portexa-auth-hero h1{font-size:2.2rem}.portexa-auth-panel{padding:28px}.page-container{padding-inline:16px}}
+@media(max-width:575.98px){.portexa-auth{border-radius:18px}.portexa-auth-hero{padding:24px}.portexa-auth-panel{padding:24px}.card-body{padding:16px}.table{font-size:.86rem}.app-footer .page-container{justify-content:center!important;text-align:center}.btn{font-size:.9rem}.portexa-auth-hero p{font-size:.95rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
