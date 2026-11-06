@@ -36,6 +36,7 @@
 
       <div class="sidebar-section-title">إعدادات النظام</div>
       <a class="sidebar-link {% if request.endpoint in ['admin_system_settings','admin_tracking_settings'] %}active{% endif %}" href="{{ url_for('admin_tracking_settings') }}"><span class="link-icon">⚙</span><span>إعدادات التتبع</span></a>
+      <a class="sidebar-link {% if request.endpoint == 'push_campaigns.campaigns' %}active{% endif %}" href="{{ url_for('push_campaigns.campaigns') }}"><span class="link-icon">✉</span><span>حملات الإشعارات</span></a>
       <a class="sidebar-link {% if request.endpoint == 'notifications_list' %}active{% endif %}" href="{{ url_for('notifications_list') }}"><span class="link-icon">●</span><span>الإشعارات</span>{% if notification_count() %}<span class="notification-badge">{{ notification_count() }}</span>{% endif %}</a>
     </nav>
 
@@ -54,7 +55,7 @@
     <div class="offcanvas-header"><h5 class="offcanvas-title">قائمة مدير النظام</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق القائمة"></button></div>
     <div class="offcanvas-body">
       <nav class="sidebar-nav mobile-nav">
-        <a class="sidebar-link {% if request.endpoint in ['billing.dashboard'] %}active{% endif %}" {% if request.endpoint in ['billing.dashboard'] %}aria-current="page"{% endif %} href="{{ url_for('billing.dashboard') }}">الرئيسية والاشتراكات</a>
+        <a class="sidebar-link" href="{{ url_for('push_campaigns.campaigns') }}">حملات الإشعارات</a><a class="sidebar-link {% if request.endpoint in ['billing.dashboard'] %}active{% endif %}" {% if request.endpoint in ['billing.dashboard'] %}aria-current="page"{% endif %} href="{{ url_for('billing.dashboard') }}">الرئيسية والاشتراكات</a>
         <div class="sidebar-section-title">مستخدمي النظام</div>
         <a class="sidebar-link {% if request.endpoint in ['admin_users','admin_users_new','admin_users_edit'] %}active{% endif %}" {% if request.endpoint in ['admin_users','admin_users_new','admin_users_edit'] %}aria-current="page"{% endif %} href="{{ url_for('admin_users') }}">حسابات التجار</a>
         <a class="sidebar-link {% if request.endpoint in ['admin_advertisers','admin_advertisers_new','admin_advertisers_edit'] %}active{% endif %}" {% if request.endpoint in ['admin_advertisers','admin_advertisers_new','admin_advertisers_edit'] %}aria-current="page"{% endif %} href="{{ url_for('admin_advertisers') }}">حسابات المعلنين</a>
