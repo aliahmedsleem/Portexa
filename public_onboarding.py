@@ -4,6 +4,7 @@ Requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI in server e
 Uses server-side OAuth code exchange and Google userinfo, never client-provided email.
 """
 import os
+import re
 import secrets
 from datetime import datetime
 from urllib.parse import urlencode
@@ -14,6 +15,11 @@ from flask_login import current_user, login_user
 from sqlalchemy import func
 
 ROLE_LABELS = {"merchant": "تاجر", "clearer": "مخلص كمركي", "carrier": "وسيط شحن"}
+GOVERNORATES = (
+    "بغداد", "البصرة", "نينوى", "أربيل", "السليمانية", "دهوك",
+    "كركوك", "الأنبار", "بابل", "كربلاء", "النجف", "القادسية",
+    "واسط", "ديالى", "صلاح الدين", "ذي قار", "ميسان", "المثنى", "حلبجة"
+)
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
@@ -106,30 +112,95 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
                 flash("الحساب التجريبي منتهي أو غير مفعل. تواصل مع الإدارة.", "warning")
                 return redirect(url_for("login"))
         else:
-            # Prevent duplicate identity creation for an email already registered by other means.
             existing = User.query.filter(func.lower(User.email) == email).first()
             if existing:
                 flash("هذا البريد مرتبط بحساب سابق. سجل الدخول بالطريقة المعتادة.", "warning")
                 return redirect(url_for("login"))
-            role = pending["role"]
-            user = User(username=username, is_admin=False, is_support=False, is_advertiser=False,
-                        is_clearer=(role == "clearer"), is_carrier=(role == "carrier"),
-                        advertiser_type="MERCHANT", email=email,
-                        owner_name=str(profile.get("name", ""))[:200],
-                        plan_type="TRIAL", starts_at=datetime.utcnow(),
-                        expires_at=plan_to_expiry("TRIAL"), license_key=generate_license_key(),
-                        license_activated=True, is_active=True)
-            user.set_password(secrets.token_urlsafe(48))
-            try:
-                db.session.add(user)
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-                current_app.logger.exception("Could not create Google trial user")
-                flash("تعذر إنشاء الحساب حالياً. حاول لاحقاً.", "danger")
-                return redirect(url_for("onboarding.landing"))
+            session["onboarding_profile"] = {
+                "sub": sub, "email": email, "role": pending["role"],
+                "created": datetime.utcnow().timestamp(),
+                "csrf": secrets.token_urlsafe(32)
+            }
+            return redirect(url_for("onboarding.complete_profile"))
         login_user(user)
         return redirect(destination(user))
+
+    @bp.route("/join/complete", methods=["GET", "POST"])
+    def complete_profile():
+        pending = session.get("onboarding_profile")
+        if not pending or datetime.utcnow().timestamp() - pending.get("created", 0) > 1200:
+            session.pop("onboarding_profile", None)
+            flash("انتهت جلسة التسجيل. ابدأ مرة أخرى عبر Google.", "warning")
+            return redirect(url_for("onboarding.landing"))
+        if current_user.is_authenticated:
+            return redirect(destination(current_user))
+        errors = []
+        values = {}
+        if request.method == "POST":
+            if not secrets.compare_digest(request.form.get("csrf", ""), pending["csrf"]):
+                abort(400)
+            fields = ("full_name", "phone", "company_name", "business_name", "governorate", "city", "address")
+            values = {key: " ".join((request.form.get(key) or "").strip().split()) for key in fields}
+            full_name = values["full_name"]
+            parts = full_name.split()
+            if not 3 <= len(parts) <= 6 or len(full_name) > 200 or not all(
+                len(p) >= 2 and all(ch.isalpha() or ch in "-'" for ch in p) for p in parts
+            ):
+                errors.append("الاسم الثلاثي يجب أن يتكون من ثلاثة أسماء صحيحة على الأقل.")
+            phone = re.sub(r"[\s\-()]", "", values["phone"])
+            if phone.startswith("+964"):
+                phone = "0" + phone[4:]
+            elif phone.startswith("00964"):
+                phone = "0" + phone[5:]
+            if not re.fullmatch(r"07[3-9][0-9]{8}", phone):
+                errors.append("أدخل رقم هاتف عراقي صحيح مثل 07701234567.")
+            values["phone"] = phone
+            for key, label, limit in (
+                ("company_name", "اسم الشركة أو المكتب", 200),
+                ("business_name", "الاسم التجاري أو اسم الخدمة", 150),
+                ("city", "المدينة أو منطقة العمل", 100),
+                ("address", "عنوان العمل", 300),
+            ):
+                if len(values[key]) < 3 or len(values[key]) > limit:
+                    errors.append(f"{label} مطلوب ويجب أن يتكون من 3 إلى {limit} حرف.")
+            if values["governorate"] not in GOVERNORATES:
+                errors.append("اختر محافظة عراقية صحيحة.")
+            if not errors:
+                username = "google_" + pending["sub"]
+                if User.query.filter_by(username=username).first() or User.query.filter(
+                    func.lower(User.email) == pending["email"]).first():
+                    errors.append("يوجد حساب مسجل بهذه الهوية أو البريد الإلكتروني.")
+                else:
+                    user = User(
+                        username=username, is_admin=False, is_support=False, is_advertiser=False,
+                        is_clearer=(pending["role"] == "clearer"),
+                        is_carrier=(pending["role"] == "carrier"),
+                        advertiser_type="MERCHANT",
+                        email=pending["email"], owner_name=full_name,
+                        phone=phone, company_name=values["company_name"],
+                        address=values["governorate"] + " - " + values["city"] + " - " + values["address"],
+                        plan_type="TRIAL", starts_at=datetime.utcnow(),
+                        expires_at=plan_to_expiry("TRIAL"),
+                        license_key=generate_license_key(),
+                        license_activated=True, is_active=True,
+                    )
+                    # Business name is retained in company_name when no dedicated field exists.
+                    # Keep the distinct submitted name in a separate metadata record later.
+                    user.set_password(secrets.token_urlsafe(48))
+                    try:
+                        db.session.add(user)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                        current_app.logger.exception("Google trial onboarding failed")
+                        errors.append("تعذر حفظ التسجيل. حاول مرة أخرى.")
+                    else:
+                        session.pop("onboarding_profile", None)
+                        login_user(user)
+                        return redirect(destination(user))
+        return render_template("public_complete_profile.html",
+                               pending=pending, role_label=ROLE_LABELS[pending["role"]],
+                               governorates=GOVERNORATES, errors=errors, values=values)
 
     @app.before_request
     def public_home_redirect():
