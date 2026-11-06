@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='urrise-theme.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='portexa-mobile-cards.css?v=1') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='portexa-mobile-cards.css?v=roles-v4') }}">
 </head>
 <body class="app-body admin-body">
 {% if current_user.is_authenticated and current_user.is_admin %}
@@ -46,24 +46,24 @@
 
   <div class="mobile-topbar d-lg-none admin-topbar">
     <button class="sidebar-toggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminMobileSidebar" aria-controls="adminMobileSidebar" aria-label="فتح قائمة الإدارة">☰</button>
-    <a class="mobile-brand" href="{{ url_for('admin_users') }}">PORTEXA | الإدارة</a>
+    <a class="mobile-brand" href="{{ url_for('billing.dashboard') }}">PORTEXA | الإدارة</a>
   </div>
 
   <div class="offcanvas offcanvas-end mobile-sidebar admin-mobile-sidebar" tabindex="-1" id="adminMobileSidebar">
     <div class="offcanvas-header"><h5 class="offcanvas-title">قائمة مدير النظام</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق القائمة"></button></div>
     <div class="offcanvas-body">
       <nav class="sidebar-nav mobile-nav">
-        <a class="sidebar-link" href="{{ url_for('billing.dashboard') }}">الرئيسية والاشتراكات</a>
+        <a class="sidebar-link {% if request.endpoint in ['billing.dashboard'] %}active{% endif %}" {% if request.endpoint in ['billing.dashboard'] %}aria-current="page"{% endif %} href="{{ url_for('billing.dashboard') }}">الرئيسية والاشتراكات</a>
         <div class="sidebar-section-title">مستخدمي النظام</div>
-        <a class="sidebar-link" href="{{ url_for('admin_users') }}">حسابات التجار</a>
-        <a class="sidebar-link" href="{{ url_for('admin_advertisers') }}">حسابات المعلنين</a>
-        <a class="sidebar-link" href="{{ url_for('admin_clearers') }}">حسابات المخلصين</a>
-        <a class="sidebar-link" href="{{ url_for('admin_carriers') }}">حسابات شركات النقل</a>
-        <a class="sidebar-link" href="{{ url_for('admin_support_users') }}">مستخدمي الدعم الفني</a>
+        <a class="sidebar-link {% if request.endpoint in ['admin_users','admin_users_new','admin_users_edit'] %}active{% endif %}" {% if request.endpoint in ['admin_users','admin_users_new','admin_users_edit'] %}aria-current="page"{% endif %} href="{{ url_for('admin_users') }}">حسابات التجار</a>
+        <a class="sidebar-link {% if request.endpoint in ['admin_advertisers','admin_advertisers_new','admin_advertisers_edit'] %}active{% endif %}" {% if request.endpoint in ['admin_advertisers','admin_advertisers_new','admin_advertisers_edit'] %}aria-current="page"{% endif %} href="{{ url_for('admin_advertisers') }}">حسابات المعلنين</a>
+        <a class="sidebar-link {% if request.endpoint in ['admin_clearers','admin_clearers_new','admin_clearers_edit'] %}active{% endif %}" {% if request.endpoint in ['admin_clearers','admin_clearers_new','admin_clearers_edit'] %}aria-current="page"{% endif %} href="{{ url_for('admin_clearers') }}">حسابات المخلصين</a>
+        <a class="sidebar-link {% if request.endpoint in ['admin_carriers','admin_carriers_new','admin_carriers_edit'] %}active{% endif %}" {% if request.endpoint in ['admin_carriers','admin_carriers_new','admin_carriers_edit'] %}aria-current="page"{% endif %} href="{{ url_for('admin_carriers') }}">حسابات شركات النقل</a>
+        <a class="sidebar-link {% if request.endpoint in ['admin_support_users','admin_support_users_new','admin_support_users_edit'] %}active{% endif %}" {% if request.endpoint in ['admin_support_users','admin_support_users_new','admin_support_users_edit'] %}aria-current="page"{% endif %} href="{{ url_for('admin_support_users') }}">مستخدمي الدعم الفني</a>
         <div class="sidebar-section-title">التقارير</div>
-        <a class="sidebar-link" href="{{ url_for('admin_report_settings') }}">تخصيص تقارير</a>
+        <a class="sidebar-link {% if request.endpoint in ['admin_report_settings'] %}active{% endif %}" {% if request.endpoint in ['admin_report_settings'] %}aria-current="page"{% endif %} href="{{ url_for('admin_report_settings') }}">تخصيص تقارير</a>
         <div class="sidebar-section-title">إعدادات النظام</div>
-        <a class="sidebar-link" href="{{ url_for('admin_tracking_settings') }}">إعدادات التتبع</a>
+        <a class="sidebar-link {% if request.endpoint in ['admin_tracking_settings','admin_system_settings'] %}active{% endif %}" {% if request.endpoint in ['admin_tracking_settings','admin_system_settings'] %}aria-current="page"{% endif %} href="{{ url_for('admin_tracking_settings') }}">إعدادات التتبع</a>
       </nav>
       <div class="sidebar-footer mt-4"><a class="btn btn-logout w-100" href="{{ url_for('logout') }}">تسجيل الخروج</a></div>
     </div>
