@@ -2939,6 +2939,10 @@ def carrier_financial_report():
 from subscription_billing import register_billing
 SubscriptionInvoice, SubscriptionPrice = register_billing(app, db, User)
 
+# Carrier external bookings are isolated from the legacy Shipment model.
+from carrier_external_bookings import register_carrier_bookings
+register_carrier_bookings(app, db, searates_track_by_bl, create_notification)
+
 if __name__ == "__main__":
     # يسمح بالدخول من أجهزة الشبكة
     app.run(host="0.0.0.0", port=5000, debug=True)
