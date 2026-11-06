@@ -847,21 +847,21 @@ def guard_everything():
 
     if is_admin():
         # مدير النظام يدخل لوحة الإدارة فقط.
-        if not (request.path.startswith("/admin") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/admin") or request.path.startswith("/notifications") or request.path.startswith("/push")):
             return redirect(url_for("admin_users"))
     elif is_support():
         # موظف الدعم الفني يدخل منظومة التكتات والإشعارات فقط.
-        if not (request.path.startswith("/support") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/support") or request.path.startswith("/notifications") or request.path.startswith("/push")):
             return redirect(url_for("support_tickets"))
     elif is_advertiser():
         # حساب المعلن يدخل فقط إلى لوحة إعلاناته.
-        if not (request.path.startswith("/advertiser") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/advertiser") or request.path.startswith("/notifications") or request.path.startswith("/push")):
             return redirect(url_for("advertiser_ads"))
     elif is_clearer():
-        if not (request.path.startswith("/clearer") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/clearer") or request.path.startswith("/notifications") or request.path.startswith("/push")):
             return redirect(url_for("clearer_dashboard"))
     elif is_carrier():
-        if not (request.path.startswith("/carrier") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/carrier") or request.path.startswith("/notifications") or request.path.startswith("/push")):
             return redirect(url_for("carrier_dashboard"))
     else:
         # المستخدم العادي ممنوع من لوحة الإدارة ولوحة الموظفين ولوحة المعلنين.
@@ -2938,6 +2938,10 @@ def carrier_financial_report():
 # Subscription billing is registered separately to keep legacy shipment logic intact.
 from subscription_billing import register_billing
 SubscriptionInvoice, SubscriptionPrice = register_billing(app, db, User)
+
+# Opt-in push campaigns; independent of legacy shipments and advertisements.
+from push_campaigns import register_push_campaigns
+register_push_campaigns(app, db, User, SystemNotification)
 
 # Carrier external bookings are isolated from the legacy Shipment model.
 from carrier_external_bookings import register_carrier_bookings
