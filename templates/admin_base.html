@@ -14,7 +14,7 @@
 <div class="app-shell">
   <aside class="app-sidebar admin-sidebar d-none d-lg-flex" aria-label="قائمة مدير النظام">
     <div class="sidebar-header">
-      <a class="sidebar-brand" href="{{ url_for('admin_users') }}">
+      <a class="sidebar-brand" href="{{ url_for('billing.dashboard') }}">
         <span class="brand-icon">أ</span>
         <span class="brand-text">PORTEXA | الإدارة</span>
       </a>
@@ -22,6 +22,7 @@
     </div>
 
     <nav class="sidebar-nav">
+      <a class="sidebar-link {% if request.endpoint == 'billing.dashboard' %}active{% endif %}" href="{{ url_for('billing.dashboard') }}"><span class="link-icon">▣</span><span>الرئيسية والاشتراكات</span></a>
       <div class="sidebar-section-title">مستخدمي النظام</div>
       <a class="sidebar-link {% if request.endpoint in ['admin_users','admin_users_new','admin_users_edit'] %}active{% endif %}" href="{{ url_for('admin_users') }}"><span class="link-icon">▥</span><span>حسابات التجار</span></a>
       <a class="sidebar-link {% if request.endpoint in ['admin_advertisers','admin_advertisers_new','admin_advertisers_edit'] %}active{% endif %}" href="{{ url_for('admin_advertisers') }}"><span class="link-icon">◎</span><span>حسابات المعلنين</span></a>
@@ -51,6 +52,7 @@
     <div class="offcanvas-header"><h5 class="offcanvas-title">قائمة مدير النظام</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق القائمة"></button></div>
     <div class="offcanvas-body">
       <nav class="sidebar-nav mobile-nav">
+        <a class="sidebar-link" href="{{ url_for('billing.dashboard') }}">الرئيسية والاشتراكات</a>
         <div class="sidebar-section-title">مستخدمي النظام</div>
         <a class="sidebar-link" href="{{ url_for('admin_users') }}">حسابات التجار</a>
         <a class="sidebar-link" href="{{ url_for('admin_advertisers') }}">حسابات المعلنين</a>
