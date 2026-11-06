@@ -5,10 +5,9 @@ All amounts are integer IQD. Payment confirmation is manual and auditable.
 from datetime import datetime, timedelta
 import secrets
 import hmac
-from decimal import Decimal, InvalidOperation
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session
 from flask_login import login_required, current_user
-from sqlalchemy import func
+from sqlalchemy import func, Index
 
 def register_billing(app, db, User):
     class SubscriptionInvoice(db.Model):
@@ -25,6 +24,7 @@ def register_billing(app, db, User):
         payment_reference = db.Column(db.String(150))
         period_starts_at = db.Column(db.DateTime)
         period_ends_at = db.Column(db.DateTime)
+        __table_args__ = (Index('uq_billing_open_invoice', 'user_id', unique=True, sqlite_where=db.text("status = 'UNPAID'")),)
 
     class SubscriptionPrice(db.Model):
         __tablename__ = "subscription_price"
@@ -145,7 +145,7 @@ def register_billing(app, db, User):
     @login_required
     def mark_paid(invoice_id):
         admin_only()
-        invoice = db.session.get(SubscriptionInvoice, invoice_id)
+        invoice = db.session.query(SubscriptionInvoice).filter_by(id=invoice_id).with_for_update().first()
         if invoice is None:
             abort(404)
         if invoice.status != "UNPAID":
@@ -178,7 +178,7 @@ def register_billing(app, db, User):
     @login_required
     def void_invoice(invoice_id):
         admin_only()
-        invoice = db.session.get(SubscriptionInvoice, invoice_id)
+        invoice = db.session.query(SubscriptionInvoice).filter_by(id=invoice_id).with_for_update().first()
         if invoice is None:
             abort(404)
         if invoice.status != "UNPAID":
@@ -200,6 +200,7 @@ def register_billing(app, db, User):
         prices = price_map()
         count = 0
         for user in eligible_query().filter(
+                User.license_activated.is_(True), User.is_active.is_(True),
                 User.expires_at.isnot(None), User.expires_at >= now,
                 User.expires_at <= deadline).all():
             if user.plan_type not in plans or prices.get(user.plan_type, 0) <= 0:
