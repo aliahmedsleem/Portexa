@@ -12,7 +12,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true", help="Create only missing billing tables")
     args = parser.parse_args()
-    # NOTE: importing legacy app.py runs its existing startup migrations.\n    # Always use the production virtualenv and take a verified DB backup first.\n    from app import app, db, SubscriptionInvoice, SubscriptionPrice
+    # NOTE: importing legacy app.py runs its existing startup migrations.
+    # Always use the production virtualenv and take a verified DB backup first.
+    from app import app, db, SubscriptionInvoice, SubscriptionPrice
     with app.app_context():
         engine = db.engine
         names = set(inspect(engine).get_table_names())
