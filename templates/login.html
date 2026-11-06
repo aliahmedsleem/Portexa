@@ -1,31 +1,37 @@
 {% extends "base.html" %}
+{% block title %}تسجيل الدخول | بورتيكسا{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-center align-items-center" style="min-height:75vh;">
-  <div class="card shadow-sm border-0" style="max-width:420px; width:100%;">
-    <div class="card-body p-4">
-
-      <div class="text-center mb-3">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height:70px;">
-      </div>
-
-      <h5 class="text-center mb-4">Portexa Logistics Platform</h5>
-
-      <form method="post">
-        <div class="mb-3">
-          <label class="form-label">اسم المستخدم</label>
-          <input name="username" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">كلمة السر</label>
-          <input name="password" type="password" class="form-control" required>
-        </div>
-        <button class="btn btn-primary w-100">تسجيل الدخول</button>
-      </form>
-
+<section class="portexa-auth" aria-label="تسجيل الدخول إلى بورتيكسا">
+  <div class="portexa-auth-hero">
+    <div>
+      <div class="eyebrow">URRISE TECHNOLOGIES · LOGISTICS SOLUTIONS</div>
+      <div class="brand-line mt-3"></div>
+      <h1>PORTEXA <span style="display:block;font-size:.48em;color:#fff">بورتيكسا</span></h1>
+      <p>من الميناء إلى وجهتك… إدارة أذكى لكل شحنة.</p>
+    </div>
+    <div>
+      <p style="font-size:1rem;max-width:38ch">منصة متكاملة لتنظيم الشحنات، متابعة الطلبات، إدارة التقارير والتواصل مع مزودي الخدمات اللوجستية.</p>
+      <div class="portexa-auth-company">منتج من شركة URRISE Technologies | نهضة أور للتقنيات</div>
     </div>
   </div>
-</div>
-
-<div class="text-center text-muted small mt-4">
-© 2026 PORTEXA. All Rights Reserved.</div>
+  <div class="portexa-auth-panel">
+    <div class="text-center mb-4">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="شعار بورتيكسا" style="max-height:78px;max-width:160px;object-fit:contain" loading="eager">
+    </div>
+    <h2 class="text-center">أهلاً بك في بورتيكسا</h2>
+    <p class="auth-subtitle text-center">سجّل دخولك لإدارة أعمالك وشحناتك من مكان واحد.</p>
+    <form method="post">
+      <div class="mb-3">
+        <label for="portexa-username" class="form-label">اسم المستخدم</label>
+        <input id="portexa-username" name="username" class="form-control" autocomplete="username" required>
+      </div>
+      <div class="mb-4">
+        <label for="portexa-password" class="form-label">كلمة المرور</label>
+        <input id="portexa-password" name="password" type="password" class="form-control" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">تسجيل الدخول</button>
+    </form>
+    <div class="portexa-auth-legal">© 2026 URRISE Technologies. جميع الحقوق محفوظة.</div>
+  </div>
+</section>
 {% endblock %}
