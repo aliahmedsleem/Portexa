@@ -116,7 +116,7 @@ def register_carrier_bookings(app, db, tracking_lookup, notify):
     @login_required
     def index():
         bookings = Booking.query.filter_by(carrier_id=current_user.id).order_by(Booking.id.desc()).all()
-        return render_template("carrier_external.html", view="list", bookings=[(b, totals(b)) for b in bookings], csrf=csrf())
+        return render_template("carrier_external.html", view="list", bookings=[(b, totals(b)) for b in bookings], csrf=csrf(), today=date.today())
 
     @bp.route("/customers", methods=["GET", "POST"])
     @login_required
