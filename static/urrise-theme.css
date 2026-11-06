@@ -110,3 +110,52 @@ form textarea.form-control{min-height:100px}
 .ticket-card:hover{border-color:#c49a50;color:#20304b}
 .empty-state{border:1px dashed #d4dbe6;border-radius:16px;background:#fff;padding:36px;text-align:center;color:#758196}
 @media(max-width:767.98px){.portexa-list-heading>.btn,.support-hero>.btn{width:100%}.portexa-list-heading{gap:12px}.card>.card-body.table-responsive{padding:12px}.table{min-width:680px}.table.report-table{min-width:540px}.table-responsive{margin-inline:0}.support-hero{padding:18px}.ticket-card{padding:17px}}
+
+
+/* Phase 4 — navigation, dialogs, accessible controls, smaller screens */
+.app-sidebar{scrollbar-width:thin;scrollbar-color:rgba(213,170,88,.35) transparent}
+.sidebar-header{padding-bottom:20px}
+.sidebar-subtitle{color:#b9c6d9!important;font-size:.78rem}
+.sidebar-nav{display:flex;flex-direction:column;gap:4px}
+.sidebar-link{min-height:43px;display:flex;align-items:center;gap:12px;border-radius:11px;padding:10px 12px;line-height:1.5;transition:background .18s ease,color .18s ease}
+.sidebar-link .link-icon{display:inline-flex;justify-content:center;align-items:center;flex:0 0 25px;min-width:25px;font-size:1.1rem}
+.sidebar-link span:last-child{overflow-wrap:anywhere}
+.sidebar-section-title{padding:17px 12px 7px;font-size:.73rem;font-weight:900}
+.sidebar-footer{margin-top:auto;padding-top:20px}
+.user-card{border-radius:14px;min-width:0}
+.user-info{min-width:0}
+.user-info strong{overflow-wrap:anywhere}
+.btn-logout{border-radius:11px}
+.mobile-topbar{min-height:62px;display:flex;align-items:center;gap:14px;padding-inline:18px}
+.sidebar-toggle{min-width:42px;min-height:42px;border-radius:10px}
+.mobile-brand{font-size:1rem;overflow-wrap:anywhere;line-height:1.4}
+.mobile-sidebar .offcanvas-header{background:#13243d;color:#fff;border-bottom:1px solid rgba(255,255,255,.1)}
+.mobile-sidebar .offcanvas-title{font-weight:900;color:#f3d69c}
+.mobile-sidebar .btn-close{filter:invert(1) grayscale(1);opacity:.9}
+.mobile-sidebar .offcanvas-body{background:linear-gradient(155deg,#101d34,#192e4d);color:#fff;padding:16px}
+.mobile-sidebar .sidebar-link{color:#eaf0f8;text-decoration:none}
+.mobile-sidebar .sidebar-link.active{color:#f3d69c!important}
+.mobile-sidebar .sidebar-section-title{color:#d9b56e}
+.modal-content{border:1px solid #e4e8ee;border-radius:20px;box-shadow:0 28px 75px rgba(12,26,47,.22);overflow:hidden}
+.modal-header{background:linear-gradient(110deg,#152741,#1d3657);color:#fff;padding:16px 22px;border-bottom:0}
+.modal-header .modal-title{font-weight:900;color:#fff}
+.modal-header .btn-close{filter:invert(1) grayscale(1);opacity:.85}
+.modal-body{padding:clamp(16px,2.5vw,26px);min-width:0;overflow-wrap:anywhere}
+.modal-footer{background:#fafbfc;border-top:1px solid #e9ecf1;padding:14px 20px;gap:8px}
+.modal-dialog{max-width:min(95vw,700px)}
+.modal-dialog.modal-lg{max-width:min(95vw,960px)}
+.modal-dialog.modal-xl{max-width:min(96vw,1180px)}
+.modal-body .table-responsive{max-width:100%}
+.dropdown-menu{border-radius:13px;border-color:#e2e6ed;box-shadow:0 16px 40px rgba(15,29,52,.12);padding:7px}
+.dropdown-item{border-radius:8px;padding:9px 12px}
+.dropdown-item:active{background:#b88935}
+.pagination{flex-wrap:wrap;gap:5px}
+.page-link{border-radius:9px!important;color:#956e2f}
+.page-item.active .page-link{background:#b88935;border-color:#b88935;color:#fff}
+.btn:focus-visible,.sidebar-link:focus-visible,.form-check-input:focus-visible{outline:3px solid #d4ad62;outline-offset:2px}
+.form-check-input:checked{background-color:#b88935;border-color:#b88935}
+.flash-toast{max-width:min(95vw,440px)}
+.bottom-ads-section{max-width:100%;overflow:hidden}
+.bottom-ad-img{max-width:100%;object-fit:contain}
+@media(max-width:991.98px){.app-shell{display:block}.app-content{width:100%;max-width:100%;margin:0!important}.mobile-sidebar{width:min(88vw,340px)!important}.offcanvas-body{overflow-y:auto}.page-container{padding-top:18px!important}}
+@media(max-width:575.98px){.modal-dialog{margin:10px auto;width:calc(100% - 20px)}.modal-body{padding:15px}.modal-header{padding:14px 16px}.modal-footer{padding:12px 15px}.modal-footer>.btn{flex:1 1 auto}.mobile-brand{font-size:.9rem}.flash-toast{max-width:calc(100vw - 24px)}}
