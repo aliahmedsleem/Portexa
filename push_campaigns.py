@@ -112,7 +112,7 @@ def register_push_campaigns(app, db, User, SystemNotification):
             db.session.add(record)
         record.user_id = current_user.id
         record.payload = json.dumps(obj)
-        record.ads_enabled = bool(data.get("ads_enabled", False))
+        if "ads_enabled" in data:\n            record.ads_enabled = bool(data["ads_enabled"])
         db.session.commit()
         return jsonify(ok=True)
 
