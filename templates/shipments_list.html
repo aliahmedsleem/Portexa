@@ -206,7 +206,7 @@
               <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                   <h6 class="mb-2">تتبع الشحنة — بيانات المسار</h6>
-                  <div class="text-muted small mb-2">بيانات المسار يتم تحديثها يدوياً بواسطة مشغل Tracking Engine، وليست تتبعاً مباشراً.</div>
+                  <div class="text-muted small mb-2">بيانات مسار الشحنة حسب آخر تحديث متوفر في نظام PORTEXA.</div>
                   <div class="border rounded p-2 bg-light" style="min-height:150px; white-space:pre-wrap" id="d_msc_tracking">-</div>
                   <div class="mt-2 d-flex gap-2">
                     <button class="btn btn-sm btn-outline-primary" type="button" onclick="refreshTracking()">تحديث العرض</button>
@@ -262,7 +262,7 @@
     const box = document.getElementById("d_msc_tracking");
     const hint = document.getElementById("d_track_hint");
     if(!route){
-      box.innerText = "لم يتم إدخال تفاصيل مسار لهذه الشحنة بعد. يرجى مراجعة مشغل التتبع.";
+      box.innerText = "لا تتوفر تفاصيل مسار لهذه الشحنة حالياً.";
       hint.innerText = "";
       return;
     }
@@ -275,7 +275,7 @@
       ["الحالة", "current_status"], ["ملاحظات", "operator_notes"]
     ];
     box.innerText = fields.map(([label,key]) => label + ": " + (route[key] || "—")).join("\n");
-    hint.innerText = "المصدر: إدخال يدوي · آخر تحديث: " + (route.updated_at || "غير متوفر");
+    hint.innerText = "آخر تحديث للمسار: " + (route.updated_at || "غير متوفر");
   }
 
   function refreshTracking(){
