@@ -205,11 +205,11 @@
             <div class="col-lg-6">
               <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                  <h6 class="mb-2">تتبع (SeaRates / MSC)</h6>
-                  <div class="text-muted small mb-2">سيتم جلبه تلقائياً حسب رقم البوليصة (B/L)</div>
+                  <h6 class="mb-2">تتبع الشحنة — بيانات المسار</h6>
+                  <div class="text-muted small mb-2">بيانات المسار يتم تحديثها يدوياً بواسطة مشغل Tracking Engine، وليست تتبعاً مباشراً.</div>
                   <div class="border rounded p-2 bg-light" style="min-height:150px; white-space:pre-wrap" id="d_msc_tracking">-</div>
                   <div class="mt-2 d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-primary" type="button" onclick="refreshTracking()">تحديث الآن</button>
+                    <button class="btn btn-sm btn-outline-primary" type="button" onclick="refreshTracking()">تحديث العرض</button>
                     <span class="text-muted small" id="d_track_hint"></span>
                   </div>
                 </div>
@@ -247,9 +247,7 @@
 </div>
 
 <script>
-  // Keep last opened shipment data
-  let _lastBL = "";
-  let _lastSeal = "MSCU";
+  let _lastShipmentId = null;
 
   function badgeStatusClass(statusText){
     if(statusText.includes("جديدة")) return "text-bg-danger";
@@ -260,56 +258,28 @@
 
   function setText(id, value){ document.getElementById(id).innerText = value || "-"; }
 
-  async function loadTracking(bl, forceUpdate=false){
+  function showManualTracking(route){
     const box = document.getElementById("d_msc_tracking");
     const hint = document.getElementById("d_track_hint");
-    if(!bl){
-      box.innerText = "-";
+    if(!route){
+      box.innerText = "لم يتم إدخال تفاصيل مسار لهذه الشحنة بعد. يرجى مراجعة مشغل التتبع.";
       hint.innerText = "";
       return;
     }
-
-    box.innerText = "جاري جلب التتبع حسب رقم البوليصة...";
-    hint.innerText = "";
-
-    const url = `/api/tracking/searates?bl=${encodeURIComponent(bl)}&sealine=${encodeURIComponent(_lastSeal)}${forceUpdate ? "&force_update=1" : ""}`;
-
-    try{
-      const res = await fetch(url, {cache:"no-store"});
-      const t = await res.json();
-
-      if(!t.ok){
-        box.innerText = "تعذر جلب التتبع: " + (t.error || "");
-        hint.innerText = t.details ? ("تفاصيل: " + t.details) : "";
-        return;
-      }
-
-      let text = "";
-      text += `المزوّد: ${t.provider}\n`;
-      text += `الخط: ${t.carrier || "MSC"} (${t.sealine || ""})\n`;
-      text += `B/L: ${bl}\n`;
-      if (t.container) text += `Container: ${t.container}\n`;
-      text += `الحالة: ${t.status || "-"}\n`;
-      text += `ETA: ${t.eta || "-"}\n\n`;
-
-      if(Array.isArray(t.events) && t.events.length){
-        text += "الأحداث:\n";
-        t.events.slice(0, 20).forEach(ev => {
-          text += `- ${ev.date || ""} | ${ev.location || ""} | ${ev.description || ""}\n`;
-        });
-      }else{
-        text += "لا توجد أحداث حالياً.";
-      }
-
-      box.innerText = text;
-
-    }catch(e){
-      box.innerText = "خطأ اتصال أثناء جلب التتبع.";
-    }
+    const fields = [
+      ["ميناء التحميل", "loading_port"], ["الميناء الحالي", "current_port"],
+      ["الميناء التالي", "next_port"], ["ميناء التفريغ", "discharge_port"],
+      ["ميناء الترانزيت", "transshipment_port"], ["السفينة", "vessel_name"],
+      ["رقم الرحلة", "voyage_number"], ["رقم الحاوية", "container_number"],
+      ["موعد المغادرة المتوقع", "etd"], ["موعد الوصول المتوقع", "eta"],
+      ["الحالة", "current_status"], ["ملاحظات", "operator_notes"]
+    ];
+    box.innerText = fields.map(([label,key]) => label + ": " + (route[key] || "—")).join("\\n");
+    hint.innerText = "المصدر: إدخال يدوي · آخر تحديث: " + (route.updated_at || "غير متوفر");
   }
 
   function refreshTracking(){
-    if(_lastBL) loadTracking(_lastBL, true);
+    if(_lastShipmentId !== null) openDetails(_lastShipmentId);
   }
 
   async function openDetails(shipmentId){
@@ -376,10 +346,8 @@
       document.getElementById("detailsLoading").classList.add("d-none");
       document.getElementById("detailsContent").classList.remove("d-none");
 
-      // ✅ Auto Tracking by BL
-      _lastBL = (d.bol_no || "").trim();
-      _lastSeal = "MSCU";
-      await loadTracking(_lastBL, false);
+      _lastShipmentId = d.id;
+      showManualTracking(d.manual_tracking);
 
     }catch(err){
       document.getElementById("detailsLoading").classList.add("d-none");
