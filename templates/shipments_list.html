@@ -106,6 +106,17 @@
 </div>
 
 <!-- ✅ Modal -->
+<style>
+  #detailsModal .modal-content{border-radius:1rem;overflow:hidden}
+  #detailsModal .modal-body{background:var(--bs-tertiary-bg,#f7f8fa)}
+  #detailsModal .card{border:1px solid var(--bs-border-color,#e5e7eb)!important;border-radius:1rem}
+  #detailsModal .card-body{padding:1.15rem}
+  #detailsModal .card h6{font-weight:700}
+  #detailsModal .shipment-detail-item{height:100%;padding:.8rem .9rem;border:1px solid var(--bs-border-color,#e5e7eb);border-radius:.75rem;background:var(--bs-body-bg,#fff);overflow-wrap:anywhere}
+  #detailsModal .shipment-detail-label{font-size:.78rem;color:var(--bs-secondary-color,#6c757d);margin-bottom:.4rem}
+  #detailsModal .shipment-detail-value{font-weight:600;line-height:1.5;white-space:pre-wrap}
+  @media(max-width:575.98px){#detailsModal .card-body{padding:.85rem}#detailsModal .shipment-detail-item{padding:.7rem}}
+</style>
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content border-0 shadow">
@@ -140,15 +151,11 @@
               <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                   <h6 class="mb-3">بيانات الفاتورة</h6>
-                  <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                      <tbody>
-                        <tr><td class="text-muted" style="width:40%">رقم الفاتورة</td><td id="d_invoice_no">-</td></tr>
-                        <tr><td class="text-muted">تاريخ الفاتورة</td><td id="d_invoice_date">-</td></tr>
-                        <tr><td class="text-muted">مبلغ الفاتورة</td><td id="d_invoice_amount">-</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="row g-2 shipment-detail-grid">
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">رقم الفاتورة</div><div class="shipment-detail-value" id="d_invoice_no">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">تاريخ الفاتورة</div><div class="shipment-detail-value" id="d_invoice_date">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">مبلغ الفاتورة</div><div class="shipment-detail-value" id="d_invoice_amount">-</div></div></div>
+                      </div>
                 </div>
               </div>
             </div>
@@ -157,16 +164,12 @@
               <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                   <h6 class="mb-3">بيانات الشحن</h6>
-                  <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                      <tbody>
-                        <tr><td class="text-muted" style="width:40%">رقم البوليصة</td><td id="d_bol_no">-</td></tr>
-                        <tr><td class="text-muted">عدد الحاويات</td><td id="d_containers_count">-</td></tr>
-                        <tr><td class="text-muted">مبلغ الشحن</td><td id="d_shipping_cost">-</td></tr>
-                        <tr><td class="text-muted">دفع الشحن من قبل</td><td id="d_shipping_paid_by">-</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="row g-2 shipment-detail-grid">
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">رقم البوليصة</div><div class="shipment-detail-value" id="d_bol_no">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">عدد الحاويات</div><div class="shipment-detail-value" id="d_containers_count">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">مبلغ الشحن</div><div class="shipment-detail-value" id="d_shipping_cost">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">دفع الشحن من قبل</div><div class="shipment-detail-value" id="d_shipping_paid_by">-</div></div></div>
+                      </div>
                 </div>
               </div>
             </div>
@@ -175,15 +178,11 @@
               <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                   <h6 class="mb-3">التواريخ والوجهة</h6>
-                  <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                      <tbody>
-                        <tr><td class="text-muted" style="width:40%">البلد</td><td id="d_country">-</td></tr>
-                        <tr><td class="text-muted">موعد الشحن</td><td id="d_ship_date">-</td></tr>
-                        <tr><td class="text-muted">موعد الوصول</td><td id="d_arrival_date">-</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="row g-2 shipment-detail-grid">
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">البلد</div><div class="shipment-detail-value" id="d_country">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">موعد الشحن</div><div class="shipment-detail-value" id="d_ship_date">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">موعد الوصول</div><div class="shipment-detail-value" id="d_arrival_date">-</div></div></div>
+                      </div>
                 </div>
               </div>
             </div>
@@ -192,12 +191,12 @@
               <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                   <h6 class="mb-3">الخدمات المرتبطة</h6>
-                  <div class="table-responsive"><table class="table table-sm mb-0"><tbody>
-                    <tr><td class="text-muted" style="width:40%">شركة النقل</td><td id="d_carrier">-</td></tr>
-                    <tr><td class="text-muted">المخلص</td><td id="d_clearer">-</td></tr>
-                    <tr><td class="text-muted">مبلغ التخليص</td><td id="d_clearance_cost">-</td></tr>
-                    <tr><td class="text-muted">حالة التخليص</td><td id="d_clearance_status">-</td></tr>
-                  </tbody></table></div>
+                  <div class="row g-2 shipment-detail-grid">
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">شركة النقل</div><div class="shipment-detail-value" id="d_carrier">-</div></div></div>
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">المخلص</div><div class="shipment-detail-value" id="d_clearer">-</div></div></div>
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">مبلغ التخليص</div><div class="shipment-detail-value" id="d_clearance_cost">-</div></div></div>
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">حالة التخليص</div><div class="shipment-detail-value" id="d_clearance_status">-</div></div></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -207,7 +206,7 @@
                 <div class="card-body">
                   <h6 class="mb-2">تتبع الشحنة — بيانات المسار</h6>
                   <div class="text-muted small mb-2">بيانات مسار الشحنة حسب آخر تحديث متوفر في نظام PORTEXA.</div>
-                  <div class="border rounded p-2 bg-light" style="min-height:150px; white-space:pre-wrap" id="d_msc_tracking">-</div>
+                  <div class="row g-2 shipment-detail-grid" id="d_msc_tracking">-</div>
                   <div class="mt-2 d-flex gap-2">
                     <button class="btn btn-sm btn-outline-primary" type="button" onclick="refreshTracking()">تحديث العرض</button>
                     <span class="text-muted small" id="d_track_hint"></span>
@@ -262,7 +261,7 @@
     const box = document.getElementById("d_msc_tracking");
     const hint = document.getElementById("d_track_hint");
     if(!route){
-      box.innerText = "لا تتوفر تفاصيل مسار لهذه الشحنة حالياً.";
+      box.replaceChildren(); const empty=document.createElement("div"); empty.className="col-12 text-muted small"; empty.textContent="لا تتوفر تفاصيل مسار لهذه الشحنة حالياً."; box.append(empty);
       hint.innerText = "";
       return;
     }
@@ -274,7 +273,7 @@
       ["موعد المغادرة المتوقع", "etd"], ["موعد الوصول المتوقع", "eta"],
       ["الحالة", "current_status"], ["ملاحظات", "operator_notes"]
     ];
-    box.innerText = fields.map(([label,key]) => label + ": " + (route[key] || "—")).join("\n");
+    box.replaceChildren(...fields.map(([label,key]) => { const col=document.createElement("div"); col.className="col-12 col-sm-6"; const item=document.createElement("div"); item.className="shipment-detail-item"; const heading=document.createElement("div"); heading.className="shipment-detail-label"; heading.textContent=label; const value=document.createElement("div"); value.className="shipment-detail-value"; value.textContent=route[key] || "—"; item.append(heading,value); col.append(item); return col; }));
     hint.innerText = "آخر تحديث للمسار: " + (route.updated_at || "غير متوفر");
   }
 
