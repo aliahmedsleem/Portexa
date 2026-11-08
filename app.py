@@ -1838,7 +1838,7 @@ def admin_tracking_settings():
     if blocked:
         return blocked
     if request.method == "POST":
-        flash("تم إيقاف إعدادات SeaRates. التتبع اليدوي يُدار من Tracking Engine.", "info")
+        flash("تم إيقاف إعدادات SeaRates. تُدار بيانات المسارات من Tracking Engine.", "info")
         return redirect(url_for("admin_tracking_settings"))
     return render_template("admin_tracking_settings.html")
 
@@ -1855,7 +1855,7 @@ def admin_tracking_settings_test():
 @app.get("/api/tracking/searates")
 @login_required
 def api_tracking_searates_retired():
-    return jsonify({"ok": False, "error": "تم إيقاف SeaRates؛ استخدم بيانات التتبع اليدوية"}), 410
+    return jsonify({"ok": False, "error": "تم إيقاف SeaRates؛ استخدم بيانات مسارات PORTEXA"}), 410
 
 
 @app.route("/admin/report-settings", methods=["GET", "POST"])
