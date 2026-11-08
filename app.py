@@ -3,6 +3,8 @@ from io import BytesIO
 import os
 import time
 import secrets
+import sqlite3
+from pathlib import Path
 
 import requests
 from flask import (
@@ -753,45 +755,33 @@ def inject_helpers():
     }
 
 
-SYSTEM_SETTING_DEFAULTS = {
-    "tracking_api_key": "K-D80C6637-2851-43AD-9445-370396C73F12",
-    "tracking_base_url": "https://tracking.searates.com",
-    "tracking_default_sealine": "MSCU",
-    "tracking_cache_ttl": "120",
-}
+# SeaRates integration has been retired. No API credentials are kept in code.
+# Manual routing data lives in the independent Tracking Engine SQLite database.
 
 
-def get_system_setting(key: str, default=None):
+def manual_tracking_for_shipment(shipment_id):
+    """Read operator-entered route data only; never write to the engine DB here."""
+    db_path = Path(os.environ.get(
+        "PORTEXA_TRACKING_DB",
+        "/home/alialameeri/Portexa-Tracking-Engine/data/tracking.sqlite3"
+    )).expanduser()
+    if not db_path.is_file():
+        return None
     try:
-        row = SystemSetting.query.filter_by(key=key).first()
-        if row and row.value is not None:
-            return row.value
-    except Exception:
-        pass
-    return SYSTEM_SETTING_DEFAULTS.get(key, default)
-
-
-def set_system_setting(key: str, value: str):
-    row = SystemSetting.query.filter_by(key=key).first()
-    if not row:
-        row = SystemSetting(key=key)
-        db.session.add(row)
-    row.value = (value or "").strip()
-    return row
-
-
-def tracking_settings():
-    ttl_raw = get_system_setting("tracking_cache_ttl", "120")
-    try:
-        ttl = max(0, int(ttl_raw))
-    except Exception:
-        ttl = 120
-    return {
-        "api_key": get_system_setting("tracking_api_key", SYSTEM_SETTING_DEFAULTS["tracking_api_key"]),
-        "base_url": (get_system_setting("tracking_base_url", SYSTEM_SETTING_DEFAULTS["tracking_base_url"]) or SYSTEM_SETTING_DEFAULTS["tracking_base_url"]).rstrip("/"),
-        "default_sealine": get_system_setting("tracking_default_sealine", SYSTEM_SETTING_DEFAULTS["tracking_default_sealine"]),
-        "cache_ttl": ttl,
-    }
+        uri = db_path.resolve().as_uri() + "?mode=ro"
+        with sqlite3.connect(uri, uri=True, timeout=3) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT loading_port,current_port,next_port,discharge_port,"
+                "transshipment_port,vessel_name,voyage_number,container_number,"
+                "etd,eta,current_status,operator_notes,updated_at,source "
+                "FROM portexa_manual_routes WHERE source_shipment_id=?",
+                (shipment_id,),
+            ).fetchone()
+            return dict(row) if row else None
+    except (sqlite3.Error, OSError):
+        app.logger.warning("Manual route unavailable for shipment %s", shipment_id)
+        return None
 
 
 # -------------------- Auth / Guards --------------------
@@ -964,127 +954,6 @@ with app.app_context():
             db.session.rollback()
 
     db.session.commit()
-
-
-# ============================================================
-# SeaRates Tracking API (Third Party)
-# Values are loaded dynamically from Admin > System Settings.
-# ============================================================
-_tracking_cache = {}  # { key: (expire_ts, data) }
-
-
-def _cache_get(key: str):
-    item = _tracking_cache.get(key)
-    if not item:
-        return None
-    expire_ts, data = item
-    if time.time() > expire_ts:
-        _tracking_cache.pop(key, None)
-        return None
-    return data
-
-
-def _cache_set(key: str, data, ttl_seconds=120):
-    _tracking_cache[key] = (time.time() + ttl_seconds, data)
-
-
-def _searates_normalize(raw: dict) -> dict:
-    data = raw.get("data") or {}
-    meta = data.get("metadata") or {}
-
-    overall_status = meta.get("status") or meta.get("shipment_status") or ""
-    eta = (meta.get("eta") or "") or (data.get("eta") or "")
-
-    events = data.get("events")
-    if not isinstance(events, list):
-        route = data.get("route") or {}
-        events = route.get("events")
-    if not isinstance(events, list):
-        events = []
-
-    normalized_events = []
-    for ev in events:
-        if not isinstance(ev, dict):
-            continue
-        normalized_events.append({
-            "date": ev.get("date") or ev.get("event_time") or ev.get("timestamp") or "",
-            "location": ev.get("location") or ev.get("port") or ev.get("place") or "",
-            "description": ev.get("description") or ev.get("event") or ev.get("status") or "",
-        })
-
-    container_no = ""
-    containers = data.get("containers")
-    if isinstance(containers, list) and containers:
-        c0 = containers[0] if isinstance(containers[0], dict) else {}
-        container_no = c0.get("number") or c0.get("container") or ""
-    if not container_no:
-        container_no = meta.get("container") or ""
-
-    return {
-        "ok": True,
-        "provider": "SeaRates",
-        "carrier": meta.get("sealine_name") or "MSC",
-        "sealine": meta.get("sealine") or tracking_settings()["default_sealine"],
-        "bl": meta.get("number") or "",
-        "status": overall_status,
-        "eta": eta,
-        "container": container_no,
-        "events": normalized_events,
-    }
-
-
-def searates_track_by_bl(bl: str, sealine: str = None, force_update: bool = False, route: bool = True, api_key: str = None, base_url: str = None) -> dict:
-    settings = tracking_settings()
-    sealine = (sealine or settings["default_sealine"] or "auto").strip()
-    api_key = (api_key or settings["api_key"] or "").strip()
-    base_url = (base_url or settings["base_url"] or SYSTEM_SETTING_DEFAULTS["tracking_base_url"]).rstrip("/")
-
-    if not api_key:
-        return {"ok": False, "error": "API_KEY غير مضبوط في إعدادات التتبع"}
-
-    cache_key = f"searates:BL:{sealine}:{bl}:{int(route)}:{int(force_update)}:{api_key[-8:]}"
-    cached = _cache_get(cache_key)
-    if cached and not force_update:
-        return cached
-
-    url = f"{base_url}/tracking"
-    params = {
-        "api_key": api_key,
-        "number": bl,
-        "type": "BL",
-        "sealine": sealine,
-        "force_update": "true" if force_update else "false",
-        "route": "true" if route else "false",
-    }
-
-    try:
-        r = requests.get(url, params=params, timeout=25)
-        if r.status_code != 200:
-            return {"ok": False, "error": f"SeaRates HTTP {r.status_code}", "details": r.text[:300]}
-        raw = r.json()
-    except Exception as e:
-        return {"ok": False, "error": "فشل الاتصال بـ SeaRates", "details": str(e)[:250]}
-
-    if raw.get("status") != "success":
-        return {"ok": False, "error": raw.get("message") or "SeaRates رد غير ناجح"}
-
-    out = _searates_normalize(raw)
-    _cache_set(cache_key, out, ttl_seconds=settings["cache_ttl"])
-    return out
-
-
-@app.get("/api/tracking/searates")
-@login_required
-def api_tracking_searates():
-    bl = (request.args.get("bl") or "").strip()
-    if not bl:
-        return jsonify({"ok": False, "error": "أدخل رقم بوليصة الشحن bl"}), 400
-
-    sealine = (request.args.get("sealine") or tracking_settings()["default_sealine"]).strip()
-    force_update = (request.args.get("force_update") or "0").strip() in ("1", "true", "yes")
-
-    result = searates_track_by_bl(bl=bl, sealine=sealine, force_update=force_update, route=True)
-    return jsonify(result), (200 if result.get("ok") else 400)
 
 
 # -------------------- Auth Routes --------------------
@@ -1269,6 +1138,7 @@ def shipment_details(shipment_id):
 
         "bol_no": s.bol_no or "",
         "msc_tracking": s.msc_tracking or "",
+        "manual_tracking": manual_tracking_for_shipment(s.id),
 
         "shipping_mode": mode,
         "cargo_type": cargo,
@@ -1972,34 +1842,10 @@ def admin_tracking_settings():
     blocked = admin_required_redirect()
     if blocked:
         return blocked
-
     if request.method == "POST":
-        api_key = (request.form.get("tracking_api_key") or "").strip()
-        base_url = (request.form.get("tracking_base_url") or "").strip().rstrip("/")
-        default_sealine = (request.form.get("tracking_default_sealine") or "").strip().upper()
-        cache_ttl = (request.form.get("tracking_cache_ttl") or "120").strip()
-
-        if not api_key:
-            flash("API_KEY مطلوب.", "danger")
-            return redirect(url_for("admin_tracking_settings"))
-        if not base_url:
-            flash("رابط API الأساسي مطلوب.", "danger")
-            return redirect(url_for("admin_tracking_settings"))
-        try:
-            ttl = max(0, int(cache_ttl))
-        except Exception:
-            ttl = 120
-
-        set_system_setting("tracking_api_key", api_key)
-        set_system_setting("tracking_base_url", base_url)
-        set_system_setting("tracking_default_sealine", default_sealine or "MSCU")
-        set_system_setting("tracking_cache_ttl", str(ttl))
-        _tracking_cache.clear()
-        db.session.commit()
-        flash("تم حفظ إعدادات التتبع بنجاح.", "success")
+        flash("تم إيقاف إعدادات SeaRates. التتبع اليدوي يُدار من Tracking Engine.", "info")
         return redirect(url_for("admin_tracking_settings"))
-
-    return render_template("admin_tracking_settings.html", settings=tracking_settings())
+    return render_template("admin_tracking_settings.html")
 
 
 @app.get("/admin/system-settings/tracking/test")
@@ -2008,26 +1854,13 @@ def admin_tracking_settings_test():
     blocked = admin_required_redirect()
     if blocked:
         return jsonify({"ok": False, "error": "غير مصرح"}), 403
+    return jsonify({"ok": False, "error": "تم إيقاف اتصال SeaRates الخارجي"}), 410
 
-    number = (request.args.get("number") or "").strip()
-    api_key = (request.args.get("api_key") or tracking_settings()["api_key"]).strip()
-    base_url = (request.args.get("base_url") or tracking_settings()["base_url"]).strip().rstrip("/")
-    sealine = (request.args.get("sealine") or tracking_settings()["default_sealine"]).strip().upper()
 
-    if not api_key:
-        return jsonify({"ok": False, "error": "أدخل API_KEY أولاً"}), 400
-    if not number:
-        return jsonify({"ok": False, "error": "أدخل رقم بوليصة حقيقي للفحص"}), 400
-
-    result = searates_track_by_bl(
-        bl=number,
-        sealine=sealine,
-        force_update=True,
-        route=False,
-        api_key=api_key,
-        base_url=base_url,
-    )
-    return jsonify(result), (200 if result.get("ok") else 400)
+@app.get("/api/tracking/searates")
+@login_required
+def api_tracking_searates_retired():
+    return jsonify({"ok": False, "error": "تم إيقاف SeaRates؛ استخدم بيانات التتبع اليدوية"}), 410
 
 
 @app.route("/admin/report-settings", methods=["GET", "POST"])
