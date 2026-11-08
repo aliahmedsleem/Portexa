@@ -1,134 +1,19 @@
-{% extends "admin_base.html" %}
-{% block title %}إعدادات التتبع{% endblock %}
+{% extends "base.html" %}
 {% block content %}
-
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-3">
   <div>
     <h4 class="mb-0">إعدادات التتبع</h4>
-    <div class="text-muted small">إعدادات منظومة التتبع البرمجية داخل النظام. التعديل هنا يؤثر مباشرة على فحص وتتبع الشحنات.</div>
+    <div class="text-muted small">PORTEXA Tracking Engine — تتبع يدوي مستقل</div>
   </div>
   <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
 </div>
-
-<div class="row g-3">
-  <div class="col-12 col-xl-8">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-3">
-          <div>
-            <h5 class="fw-bold mb-1">بيانات الاتصال بواجهة التتبع</h5>
-            <div class="text-muted small">غيّر المفتاح أو رابط الخدمة واحفظ الإعدادات بدون تعديل الكود.</div>
-          </div>
-          <span class="badge text-bg-primary">SeaRates Tracking API</span>
-        </div>
-
-        <form method="post" id="trackingSettingsForm">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label">API_KEY</label>
-              <input class="form-control font-monospace" type="text" name="tracking_api_key" id="tracking_api_key" value="{{ settings.api_key }}" autocomplete="off" required>
-            </div>
-
-            <div class="col-md-8">
-              <label class="form-label">رابط API الأساسي</label>
-              <input class="form-control ltr-input" type="url" name="tracking_base_url" id="tracking_base_url" value="{{ settings.base_url }}" required>
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label">رمز شركة الشحن الافتراضي</label>
-              <input class="form-control ltr-input" type="text" name="tracking_default_sealine" id="tracking_default_sealine" value="{{ settings.default_sealine }}" placeholder="MSCU">
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label">مدة الكاش بالثواني</label>
-              <input class="form-control" type="number" min="0" name="tracking_cache_ttl" id="tracking_cache_ttl" value="{{ settings.cache_ttl }}">
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-end gap-2 flex-wrap mt-4">
-            <button class="btn btn-primary">حفظ الإعدادات</button>
-            <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
-          </div>
-        </form>
-      </div>
-    </div>
+<div class="card shadow-sm border-0"><div class="card-body">
+  <h5>تم إيقاف تكامل SeaRates</h5>
+  <p>لم يعد النظام يحتاج إلى مفتاح API خارجي لعرض بيانات المسار. تظهر الموانئ والسفينة والتواريخ التي يدخلها مشغل التتبع في لوحة Tracking Engine.</p>
+  <div class="alert alert-info">
+    بيانات المسار يتم إدخالها يدوياً، وليست تحديثات مباشرة من شركة الشحن.
+    عند عدم توفر البيانات ستظهر رسالة واضحة في تفاصيل الشحنة.
   </div>
-
-  <div class="col-12 col-xl-4">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body">
-        <h5 class="fw-bold mb-2">فحص مباشر للمفتاح</h5>
-        <div class="text-muted small mb-3">أدخل رقم بوليصة حقيقي لفحص الاتصال بالإعدادات الحالية قبل أو بعد الحفظ.</div>
-
-        <div class="row g-2 align-items-end">
-          <div class="col-12">
-            <label class="form-label">رقم البوليصة للفحص</label>
-            <input class="form-control ltr-input" type="text" id="test_tracking_number" placeholder="BL Number">
-          </div>
-          <div class="col-12 d-grid">
-            <button class="btn btn-outline-primary" type="button" id="testTrackingBtn">فحص الاتصال الآن</button>
-          </div>
-        </div>
-
-        <div id="trackingTestResult" class="tracking-test-result mt-3 d-none"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-(function () {
-  const btn = document.getElementById('testTrackingBtn');
-  const resultBox = document.getElementById('trackingTestResult');
-
-  function showResult(type, html) {
-    resultBox.className = 'tracking-test-result mt-3 alert alert-' + type;
-    resultBox.innerHTML = html;
-  }
-
-  btn?.addEventListener('click', async function () {
-    const number = document.getElementById('test_tracking_number').value.trim();
-    const apiKey = document.getElementById('tracking_api_key').value.trim();
-    const baseUrl = document.getElementById('tracking_base_url').value.trim();
-    const sealine = document.getElementById('tracking_default_sealine').value.trim();
-
-    if (!number) {
-      showResult('warning', 'أدخل رقم بوليصة حقيقي حتى يتم الفحص.');
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'جاري الفحص...';
-    showResult('info', 'يتم فحص الاتصال مع مزود التتبع...');
-
-    const params = new URLSearchParams({ number, api_key: apiKey, base_url: baseUrl, sealine });
-    try {
-      const res = await fetch(`{{ url_for('admin_tracking_settings_test') }}?${params.toString()}`);
-      const data = await res.json();
-
-      if (data.ok) {
-        showResult('success', `
-          <div class="fw-bold mb-1">تم الاتصال بنجاح.</div>
-          <div>المزود: ${data.provider || '-'}</div>
-          <div>شركة الشحن: ${data.carrier || data.sealine || '-'}</div>
-          <div>الحالة: ${data.status || '-'}</div>
-          <div>ETA: ${data.eta || '-'}</div>
-        `);
-      } else {
-        showResult('danger', `
-          <div class="fw-bold mb-1">فشل الفحص.</div>
-          <div>${data.error || 'تعذر الاتصال'}</div>
-          ${data.details ? `<div class="small mt-2 ltr-input">${data.details}</div>` : ''}
-        `);
-      }
-    } catch (e) {
-      showResult('danger', 'حدث خطأ أثناء الفحص. تأكد من الاتصال بالإنترنت والإعدادات.');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'فحص الاتصال الآن';
-    }
-  });
-})();
-</script>
-
+  <p class="text-muted small mb-0">لوحة المشغل محلية على السيرفر وتُفتح عبر نفق SSH. لا تعرض لوحة المشغل للإنترنت دون مصادقة وصلاحيات.</p>
+</div></div>
 {% endblock %}
