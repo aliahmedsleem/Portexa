@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PORTEXA | تشخيص إشعارات PWA</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+body{background:#f3f5f9;color:#15283d;margin:0;padding:20px}
+main{max-width:650px;margin:auto;background:white;border-radius:18px;padding:24px;box-shadow:0 8px 30px #15283d12}
+h1{font-size:1.4rem}button{border:0;border-radius:10px;background:#142d50;color:white;padding:12px 18px;font:inherit;cursor:pointer;margin:5px 0}
+button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eef2f6;border-radius:10px;padding:15px;line-height:1.8}
+.note{font-size:.92rem;color:#4d6279}#result{min-height:1.4em}
+</style></head>
+<body><main>
+<h1>🔔 تشخيص إشعارات PORTEXA</h1>
+<p>افتح هذه الصفحة على الهاتف نفسه. الفحص لا يرسل إشعارات لأي مستخدم آخر، ولا يغيّر الاشتراكات.</p>
+<button id="check">فحص الهاتف</button>
+<button id="test">عرض إشعار محلي تجريبي</button>
+<p id="result" role="status" aria-live="polite"></p>
+<pre id="details">اضغط «فحص الهاتف» لعرض النتائج.</pre>
+<p class="note">الإشعار المحلي يختبر عرض Android فقط، وليس تسليم Push من السيرفر. إذا كان إذن الإشعارات محظوراً، فعّله من إعدادات التطبيق ولا تحذف PWA.</p>
+</main>
+<script>
+(()=>{
+'use strict';
+const out=document.getElementById('details'),msg=document.getElementById('result');
+let regs=[];
+async function inspect(){
+ const lines=[];
+ lines.push('HTTPS: '+(isSecureContext?'نعم':'لا'));
+ lines.push('Notification API: '+('Notification' in window?'متاح':'غير متاح'));
+ lines.push('الإذن: '+('Notification' in window?Notification.permission:'غير متاح'));
+ lines.push('Service Worker API: '+('serviceWorker' in navigator?'متاح':'غير متاح'));
+ lines.push('PushManager: '+('PushManager' in window?'متاح':'غير متاح'));
+ lines.push('وضع العرض: '+(matchMedia('(display-mode: standalone)').matches?'PWA مستقل':'متصفح'));
+ regs=[];
+ if('serviceWorker' in navigator){
+  try{
+   regs=await navigator.serviceWorker.getRegistrations();
+   lines.push('عدد Service Workers: '+regs.length);
+   for(let i=0;i<regs.length;i++){
+    const r=regs[i],worker=r.active||r.waiting||r.installing;
+    lines.push('Worker '+(i+1)+' scope: '+new URL(r.scope).pathname);
+    lines.push('Worker '+(i+1)+' script: '+(worker?new URL(worker.scriptURL).pathname:'غير نشط'));
+    try{
+     const sub=await r.pushManager.getSubscription();
+     lines.push('اشتراك Push '+(i+1)+': '+(sub?'موجود':'غير موجود'));
+    }catch(e){lines.push('اشتراك Push '+(i+1)+': تعذر الفحص '+e.name)}
+   }
+  }catch(e){lines.push('فحص Service Worker فشل: '+e.message)}
+ }
+ out.textContent=lines.join('\n');
+ return regs;
+}
+document.getElementById('check').addEventListener('click',()=>inspect().catch(e=>msg.textContent=e.message));
+document.getElementById('test').addEventListener('click',async()=>{
+ msg.textContent='';
+ try{
+  if(!('Notification' in window))throw Error('المتصفح لا يدعم Notification API');
+  if(Notification.permission!=='granted')throw Error('إذن الإشعارات ليس granted. فعّله من إعدادات Android.');
+  const all=await inspect();
+  const r=all.find(x=>x.active);
+  if(!r)throw Error('لا يوجد Service Worker نشط على هذا الجهاز.');
+  await r.showNotification('PORTEXA - اختبار Android',{body:'هذا إشعار محلي لاختبار ظهور التنبيه على الهاتف.',tag:'portexa-local-diagnostic-'+Date.now(),icon:'/static/icons/icon-192.png',vibrate:[180,90,180],data:{url:'/notifications'}});
+  msg.textContent='تم طلب عرض الإشعار من Android. افحص لوحة الإشعارات.';
+ }catch(e){msg.textContent='تعذر الاختبار: '+e.message}
+});
+inspect().catch(e=>msg.textContent=e.message);
+})();
+</script></body></html>
