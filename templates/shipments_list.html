@@ -45,7 +45,7 @@
   </div>
 </div>
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0 portexa-desktop-shipments">
   <div class="card-body table-responsive">
     <table class="table align-middle">
       <thead class="table-light">
@@ -103,6 +103,58 @@
       </tbody>
     </table>
   </div>
+</div>
+
+<style>
+  .portexa-mobile-shipments{display:none}
+  @media(max-width:767.98px){
+    .portexa-desktop-shipments{display:none!important}
+    .portexa-mobile-shipments{display:grid;gap:14px}
+    .portexa-shipment-card{min-width:0;overflow:hidden;border:1px solid var(--bs-border-color,#e5e7eb);border-radius:16px;background:var(--bs-body-bg,#fff);box-shadow:0 4px 18px rgba(0,0,0,.045)}
+    .portexa-shipment-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--bs-border-color,#eee)}
+    .portexa-shipment-head>*{min-width:0}
+    .portexa-shipment-title{font-weight:700;overflow-wrap:anywhere}
+    .portexa-shipment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px}
+    .portexa-shipment-field{min-width:0;border-radius:10px;background:var(--bs-tertiary-bg,#f6f7f9);padding:10px}
+    .portexa-shipment-label{font-size:.76rem;color:var(--bs-secondary-color,#6c757d);margin-bottom:5px}
+    .portexa-shipment-value{font-weight:600;font-size:.91rem;overflow-wrap:anywhere;word-break:break-word}
+    .portexa-shipment-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 14px 14px}
+    .portexa-shipment-actions .btn,.portexa-shipment-actions form{width:100%;min-width:0}
+    .portexa-shipment-actions form .btn{width:100%}
+    .portexa-shipment-actions .btn{min-height:40px;display:flex;align-items:center;justify-content:center}
+    @media(max-width:350px){.portexa-shipment-grid{grid-template-columns:1fr}}
+  }
+</style>
+<div class="portexa-mobile-shipments">
+  {% for s in shipments %}
+  {% set st = status_badge(s.status) %}
+  <article class="portexa-shipment-card">
+    <div class="portexa-shipment-head">
+      <div>
+        <div class="text-muted small mb-1">الشحنة #{{ s.id }}</div>
+        <div class="portexa-shipment-title">{{ s.factory.name }}</div>
+      </div>
+      <span class="badge text-bg-{{ st[1] }} flex-shrink-0">{{ st[0] }}</span>
+    </div>
+    <div class="portexa-shipment-grid">
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">موعد الوصول</div><div class="portexa-shipment-value">{{ s.arrival_date.strftime('%Y-%m-%d') if s.arrival_date else '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">رقم البوليصة</div><div class="portexa-shipment-value">{{ s.bol_no or '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">رقم الفاتورة</div><div class="portexa-shipment-value">{{ s.invoice_no or '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">شركة النقل</div><div class="portexa-shipment-value">{{ s.carrier.company_name if s.carrier else '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">المخلص</div><div class="portexa-shipment-value">{{ s.clearer.company_name if s.clearer else '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">حالة التخليص</div><div class="portexa-shipment-value">{{ clearance_status_label(s.clearance_status) if s.clearer else '-' }}</div></div>
+    </div>
+    <div class="portexa-shipment-actions">
+      <button type="button" class="btn btn-primary" onclick="openDetails({{ s.id }})">عرض التفاصيل</button>
+      <a class="btn btn-outline-primary" href="{{ url_for('shipments_edit', shipment_id=s.id) }}">تعديل</a>
+      {% if s.clearer and s.clearance_status == 'DONE' %}<a class="btn btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CLEARER') }}">تقييم المخلص</a>{% endif %}
+      {% if s.carrier and s.status == 'RECEIVED' %}<a class="btn btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CARRIER') }}">تقييم النقل</a>{% endif %}
+      <form method="post" action="{{ url_for('shipments_delete', shipment_id=s.id) }}" onsubmit="return confirm('تأكيد حذف الشحنة؟');"><button type="submit" class="btn btn-outline-danger">حذف</button></form>
+    </div>
+  </article>
+  {% else %}
+  <div class="text-center text-muted py-4">لا توجد نتائج مطابقة للبحث.</div>
+  {% endfor %}
 </div>
 
 <!-- ✅ Modal -->
