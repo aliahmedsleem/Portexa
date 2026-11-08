@@ -51,11 +51,7 @@
         <span>خدمات التخليص</span>
       </a>
 
-      <a class="sidebar-link {% if request.endpoint in ['notifications_list'] %}active{% endif %}" href="{{ url_for('notifications_list') }}">
-        <span class="link-icon">●</span>
-        <span>الإشعارات</span>
-        {% if notification_count() %}<span class="notification-badge">{{ notification_count() }}</span>{% endif %}
-      </a>
+      
 
       <a class="sidebar-link {% if request.endpoint in ['tickets_list', 'tickets_new', 'ticket_view'] %}active{% endif %}" href="{{ url_for('tickets_list') }}">
         <span class="link-icon">☏</span>
@@ -113,7 +109,7 @@
         <a class="sidebar-link {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">التقارير</a>
         <a class="sidebar-link {% if request.endpoint == 'service_carriers' %}active{% endif %}" href="{{ url_for('service_carriers') }}">خدمات النقل</a>
         <a class="sidebar-link {% if request.endpoint == 'service_clearers' %}active{% endif %}" href="{{ url_for('service_clearers') }}">خدمات التخليص</a>
-        <a class="sidebar-link {% if request.endpoint == 'notifications_list' %}active{% endif %}" href="{{ url_for('notifications_list') }}">الإشعارات{% if notification_count() %} ({{ notification_count() }}){% endif %}</a>
+        
         <a class="sidebar-link {% if request.endpoint in ['tickets_list', 'tickets_new', 'ticket_view'] %}active{% endif %}" href="{{ url_for('tickets_list') }}">الدعم الفني</a>
         <div class="sidebar-section-title">الإدارة</div>
         <a class="sidebar-link {% if request.endpoint == 'manage_factories' %}active{% endif %}" href="{{ url_for('manage_factories') }}">إدارة المعامل</a>
@@ -136,6 +132,7 @@
   </div>
 
   <div class="app-content">
+{% include '_notification_widget.html' %}
     <main class="container-fluid page-container py-4">
 {% else %}
 <main class="container auth-container my-4">
