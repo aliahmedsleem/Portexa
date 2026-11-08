@@ -26,7 +26,7 @@
       <a class="sidebar-link {% if request.endpoint == 'support_tickets' and request.args.get('status') == 'CLOSED' %}active{% endif %}" href="{{ url_for('support_tickets', status='CLOSED') }}">
         <span class="link-icon">✓</span><span>التذاكر المغلقة</span>
       </a>
-      <a class="sidebar-link {% if request.endpoint in ['notifications_list','notification_open'] %}active{% endif %}" href="{{ url_for('notifications_list') }}"><span class="link-icon">●</span><span>الإشعارات</span>{% if notification_count() %}<span class="notification-badge">{{ notification_count() }}</span>{% endif %}</a>
+      
     </nav>
     <div class="sidebar-footer">
       <div class="user-card"><div class="user-avatar">{{ current_user.username[:1] }}</div><div class="user-info"><span class="user-label">موظف الدعم</span><strong>{{ current_user.username }}</strong></div></div>
@@ -39,10 +39,11 @@
     <div class="offcanvas-body"><nav class="sidebar-nav mobile-nav">
       <a class="sidebar-link" href="{{ url_for('support_tickets') }}">التذاكر</a>
       <a class="sidebar-link" href="{{ url_for('support_tickets', status='CLOSED') }}">الأرشيف</a>
-      <a class="sidebar-link {% if request.endpoint == 'notifications_list' %}active{% endif %}" href="{{ url_for('notifications_list') }}">الإشعارات ({{ notification_count() }})</a>
+      
     </nav><a class="btn btn-outline-danger w-100 mt-3" href="{{ url_for('logout') }}">تسجيل الخروج</a></div>
   </div>
   <div class="app-content">
+{% include '_notification_widget.html' %}
     <main class="container-fluid page-container py-4">
       {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }} shadow-sm">{{ msg }}</div>{% endfor %}{% endif %}{% endwith %}
       {% block content %}{% endblock %}
