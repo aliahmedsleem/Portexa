@@ -840,14 +840,9 @@ def guard_everything():
 with app.app_context():
     db.create_all()
 
-    # Default system settings
-    try:
-        for _k, _v in SYSTEM_SETTING_DEFAULTS.items():
-            if not SystemSetting.query.filter_by(key=_k).first():
-                db.session.add(SystemSetting(key=_k, value=_v))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
+    # Retired SeaRates settings are no longer initialized.
+    # Existing credentials in the database must be purged separately
+    # after backing up the database (see deployment instructions).
 
     # Migration: add columns if old db
     try:
