@@ -274,12 +274,16 @@
       ["موعد المغادرة المتوقع", "etd"], ["موعد الوصول المتوقع", "eta"],
       ["الحالة", "current_status"], ["ملاحظات", "operator_notes"]
     ];
-    box.innerText = fields.map(([label,key]) => label + ": " + (route[key] || "—")).join("\\n");
+    box.innerText = fields.map(([label,key]) => label + ": " + (route[key] || "—")).join("\n");
     hint.innerText = "المصدر: إدخال يدوي · آخر تحديث: " + (route.updated_at || "غير متوفر");
   }
 
   function refreshTracking(){
-    if(_lastShipmentId !== null) openDetails(_lastShipmentId);
+    if(_lastShipmentId === null) return;
+    fetch(`/shipments/${_lastShipmentId}/details`, {cache:"no-store"})
+      .then(res => {if(!res.ok) throw Error("HTTP " + res.status); return res.json()})
+      .then(data => showManualTracking(data.manual_tracking))
+      .catch(() => document.getElementById("d_track_hint").innerText = "تعذر تحديث العرض");
   }
 
   async function openDetails(shipmentId){
