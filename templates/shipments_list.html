@@ -309,14 +309,9 @@
 
   function setText(id, value){ document.getElementById(id).innerText = value || "-"; }
 
-  function showManualTracking(route){
+  function showManualTracking(route, containers = []){
     const box = document.getElementById("d_msc_tracking");
     const hint = document.getElementById("d_track_hint");
-    if(!route){
-      box.replaceChildren(); const empty=document.createElement("div"); empty.className="col-12 text-muted small"; empty.textContent="لا تتوفر تفاصيل مسار لهذه الشحنة حالياً."; box.append(empty);
-      hint.innerText = "";
-      return;
-    }
     const fields = [
       ["ميناء التحميل", "loading_port"], ["الميناء الحالي", "current_port"],
       ["الميناء التالي", "next_port"], ["ميناء التفريغ", "discharge_port"],
@@ -325,15 +320,54 @@
       ["موعد المغادرة المتوقع", "etd"], ["موعد الوصول المتوقع", "eta"],
       ["الحالة", "current_status"], ["ملاحظات", "operator_notes"]
     ];
-    box.replaceChildren(...fields.map(([label,key]) => { const col=document.createElement("div"); col.className="col-12 col-sm-6"; const item=document.createElement("div"); item.className="shipment-detail-item"; const heading=document.createElement("div"); heading.className="shipment-detail-label"; heading.textContent=label; const value=document.createElement("div"); value.className="shipment-detail-value"; value.textContent=route[key] || "—"; item.append(heading,value); col.append(item); return col; }));
-    hint.innerText = "آخر تحديث للمسار: " + (route.updated_at || "غير متوفر");
+    box.replaceChildren();
+    const hasContainers = Array.isArray(containers) && containers.length > 0;
+    const records = hasContainers ? containers : (route ? [route] : []);
+    if(!records.length){
+      const empty = document.createElement("div");
+      empty.className = "col-12 text-muted small";
+      empty.textContent = "لا تتوفر تفاصيل مسار لهذه الشحنة حالياً.";
+      box.append(empty);
+      hint.textContent = "";
+      return;
+    }
+    records.forEach((record, index) => {
+      const section = document.createElement("div");
+      section.className = "col-12";
+      const heading = document.createElement("h6");
+      heading.className = "mt-3 mb-2";
+      heading.textContent = "الحاوية " + (index + 1) + " — " + (record.container_number || "غير محددة");
+      section.append(heading);
+      const grid = document.createElement("div");
+      grid.className = "row g-2";
+      fields.forEach(([label,key]) => {
+        const col = document.createElement("div");
+        col.className = "col-12 col-sm-6";
+        const item = document.createElement("div");
+        item.className = "shipment-detail-item";
+        const title = document.createElement("div");
+        title.className = "shipment-detail-label";
+        title.textContent = label;
+        const value = document.createElement("div");
+        value.className = "shipment-detail-value";
+        value.textContent = record[key] || "—";
+        item.append(title,value);
+        col.append(item);
+        grid.append(col);
+      });
+      section.append(grid);
+      box.append(section);
+    });
+    hint.textContent = hasContainers
+      ? "بيانات الحاويات حسب آخر تحديث محفوظ في PORTEXA"
+      : "آخر تحديث للمسار: " + (route.updated_at || "غير متوفر");
   }
 
   function refreshTracking(){
     if(_lastShipmentId === null) return;
     fetch(`/shipments/${_lastShipmentId}/details`, {cache:"no-store"})
       .then(res => {if(!res.ok) throw Error("HTTP " + res.status); return res.json()})
-      .then(data => showManualTracking(data.manual_tracking))
+      .then(data => showManualTracking(data.manual_tracking, data.container_movements))
       .catch(() => document.getElementById("d_track_hint").innerText = "تعذر تحديث العرض");
   }
 
@@ -402,7 +436,7 @@
       document.getElementById("detailsContent").classList.remove("d-none");
 
       _lastShipmentId = d.id;
-      showManualTracking(d.manual_tracking);
+      showManualTracking(d.manual_tracking, d.container_movements);
 
     }catch(err){
       document.getElementById("detailsLoading").classList.add("d-none");
