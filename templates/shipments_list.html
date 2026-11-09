@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h4 class="mb-0">إدارة الشحنات</h4>
+    <div class="text-muted small">عرض وإضافة وتعديل الشحنات</div>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('shipments_new') }}">+ إضافة شحنة جديدة</a>
+</div>
+
+{% if arrival_filter %}
+<div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2 shadow-sm border-0">
+  <div>
+    <strong>فلترة مواعيد الوصول:</strong>
+    {% if arrival_filter == '3days' %}الشحنات القريبة خلال 3 أيام{% elif arrival_filter == 'week' %}الشحنات القريبة هذا الأسبوع{% elif arrival_filter == 'month' %}الشحنات القريبة هذا الشهر{% endif %}
+  </div>
+  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('shipments_list') }}">عرض كل الشحنات</a>
+</div>
+{% endif %}
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <form method="get" action="{{ url_for('shipments_list') }}" class="row g-2 align-items-center">
+      {% if arrival_filter %}<input type="hidden" name="arrival_filter" value="{{ arrival_filter }}">{% endif %}
+      <div class="col-12 col-lg-9">
+        <input
+          type="search"
+          name="q"
+          value="{{ search_query or '' }}"
+          class="form-control"
+          placeholder="بحث عام: رقم الشحنة، المعمل، البلد، الفاتورة، البوليصة، الحالة، التواريخ، الملاحظات..."
+          autocomplete="off">
+      </div>
+      <div class="col-12 col-lg-3 d-flex gap-2">
+        <button class="btn btn-primary flex-fill" type="submit">بحث</button>
+        {% if search_query %}
+        <a class="btn btn-outline-secondary flex-fill" href="{{ url_for('shipments_list', arrival_filter=arrival_filter) if arrival_filter else url_for('shipments_list') }}">إلغاء</a>
+        {% endif %}
+      </div>
+    </form>
+    {% if search_query %}
+    <div class="small text-muted mt-2">نتائج البحث عن: <span class="fw-bold">{{ search_query }}</span> — العدد: {{ shipments|length }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 portexa-desktop-shipments">
+  <div class="card-body table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>المعمل</th>
+          <th>رقم الفاتورة</th>
+          <th>رقم البوليصة</th>
+          <th>موعد الوصول</th>
+          <th>شركة النقل</th>
+          <th>المخلص</th>
+          <th>حالة التخليص</th>
+          <th>الحالة</th>
+          <th class="text-end">الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in shipments %}
+        <tr>
+          <td class="fw-bold">#{{ s.id }}</td>
+          <td>{{ s.factory.name }}</td>
+          <td>{{ s.invoice_no or "-" }}</td>
+          <td>{{ s.bol_no or "-" }}</td>
+          <td>{{ s.arrival_date.strftime('%Y-%m-%d') if s.arrival_date else '-' }}</td>
+          <td>{{ s.carrier.company_name if s.carrier else '-' }}</td>
+          <td>{{ s.clearer.company_name if s.clearer else '-' }}</td>
+          <td>{% if s.clearer %}<span class="badge text-bg-light border">{{ clearance_status_label(s.clearance_status) }}</span>{% else %}-{% endif %}</td>
+
+          {% set st = status_badge(s.status) %}
+          <td><span class="badge text-bg-{{ st[1] }}">{{ st[0] }}</span></td>
+
+          <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-info" onclick="openDetails({{ s.id }})">
+              عرض
+            </button>
+
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('shipments_edit', shipment_id=s.id) }}">تعديل</a>
+
+            {% if s.clearer and s.clearance_status == 'DONE' %}<a class="btn btn-sm btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CLEARER') }}">تقييم المخلص</a>{% endif %}
+            {% if s.carrier and s.status == 'RECEIVED' %}<a class="btn btn-sm btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CARRIER') }}">تقييم النقل</a>{% endif %}
+
+            <form method="post" action="{{ url_for('shipments_delete', shipment_id=s.id) }}"
+                  style="display:inline-block" onsubmit="return confirm('تأكيد حذف الشحنة؟');">
+              <button class="btn btn-sm btn-outline-danger" type="submit">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% if shipments|length == 0 %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-4">لا توجد نتائج مطابقة للبحث.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .portexa-mobile-shipments{display:none}
+  @media(max-width:767.98px){
+    .portexa-desktop-shipments{display:none!important}
+    .portexa-mobile-shipments{display:grid;gap:14px}
+    .portexa-shipment-card{min-width:0;overflow:hidden;border:1px solid var(--bs-border-color,#e5e7eb);border-radius:16px;background:var(--bs-body-bg,#fff);box-shadow:0 4px 18px rgba(0,0,0,.045)}
+    .portexa-shipment-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--bs-border-color,#eee)}
+    .portexa-shipment-head>*{min-width:0}
+    .portexa-shipment-title{font-weight:700;overflow-wrap:anywhere}
+    .portexa-shipment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px}
+    .portexa-shipment-field{min-width:0;border-radius:10px;background:var(--bs-tertiary-bg,#f6f7f9);padding:10px}
+    .portexa-shipment-label{font-size:.76rem;color:var(--bs-secondary-color,#6c757d);margin-bottom:5px}
+    .portexa-shipment-value{font-weight:600;font-size:.91rem;overflow-wrap:anywhere;word-break:break-word}
+    .portexa-shipment-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 14px 14px}
+    .portexa-shipment-actions .btn,.portexa-shipment-actions form{width:100%;min-width:0}
+    .portexa-shipment-actions form .btn{width:100%}
+    .portexa-shipment-actions .btn{min-height:40px;display:flex;align-items:center;justify-content:center}
+    @media(max-width:350px){.portexa-shipment-grid{grid-template-columns:1fr}}
+  }
+</style>
+<div class="portexa-mobile-shipments">
+  {% for s in shipments %}
+  {% set st = status_badge(s.status) %}
+  <article class="portexa-shipment-card">
+    <div class="portexa-shipment-head">
+      <div>
+        <div class="text-muted small mb-1">الشحنة #{{ s.id }}</div>
+        <div class="portexa-shipment-title">{{ s.factory.name }}</div>
+      </div>
+      <span class="badge text-bg-{{ st[1] }} flex-shrink-0">{{ st[0] }}</span>
+    </div>
+    <div class="portexa-shipment-grid">
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">موعد الوصول</div><div class="portexa-shipment-value">{{ s.arrival_date.strftime('%Y-%m-%d') if s.arrival_date else '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">رقم البوليصة</div><div class="portexa-shipment-value">{{ s.bol_no or '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">رقم الفاتورة</div><div class="portexa-shipment-value">{{ s.invoice_no or '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">شركة النقل</div><div class="portexa-shipment-value">{{ s.carrier.company_name if s.carrier else '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">المخلص</div><div class="portexa-shipment-value">{{ s.clearer.company_name if s.clearer else '-' }}</div></div>
+      <div class="portexa-shipment-field"><div class="portexa-shipment-label">حالة التخليص</div><div class="portexa-shipment-value">{{ clearance_status_label(s.clearance_status) if s.clearer else '-' }}</div></div>
+    </div>
+    <div class="portexa-shipment-actions">
+      <button type="button" class="btn btn-primary" onclick="openDetails({{ s.id }})">عرض التفاصيل</button>
+      <a class="btn btn-outline-primary" href="{{ url_for('shipments_edit', shipment_id=s.id) }}">تعديل</a>
+      {% if s.clearer and s.clearance_status == 'DONE' %}<a class="btn btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CLEARER') }}">تقييم المخلص</a>{% endif %}
+      {% if s.carrier and s.status == 'RECEIVED' %}<a class="btn btn-outline-warning" href="{{ url_for('shipment_rate_service', shipment_id=s.id, service_type='CARRIER') }}">تقييم النقل</a>{% endif %}
+      <form method="post" action="{{ url_for('shipments_delete', shipment_id=s.id) }}" onsubmit="return confirm('تأكيد حذف الشحنة؟');"><button type="submit" class="btn btn-outline-danger">حذف</button></form>
+    </div>
+  </article>
+  {% else %}
+  <div class="text-center text-muted py-4">لا توجد نتائج مطابقة للبحث.</div>
+  {% endfor %}
+</div>
+
+<!-- ✅ Modal -->
+<style>
+  #detailsModal .modal-content{border-radius:1rem;overflow:hidden}
+  #detailsModal .modal-body{background:var(--bs-tertiary-bg,#f7f8fa)}
+  #detailsModal .card{border:1px solid var(--bs-border-color,#e5e7eb)!important;border-radius:1rem}
+  #detailsModal .card-body{padding:1.15rem}
+  #detailsModal .card h6{font-weight:700}
+  #detailsModal .shipment-detail-item{height:100%;padding:.8rem .9rem;border:1px solid var(--bs-border-color,#e5e7eb);border-radius:.75rem;background:var(--bs-body-bg,#fff);overflow-wrap:anywhere}
+  #detailsModal .shipment-detail-label{font-size:.78rem;color:var(--bs-secondary-color,#6c757d);margin-bottom:.4rem}
+  #detailsModal .shipment-detail-value{font-weight:600;line-height:1.5;white-space:pre-wrap}
+  @media(max-width:575.98px){ #detailsModal .card-body{padding:.85rem}#detailsModal .shipment-detail-item{padding:.7rem}}
+</style>
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0">تفاصيل الشحنة</h5>
+          <div class="text-muted small" id="d_header_sub"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="detailsLoading" class="text-muted">... جاري تحميل التفاصيل</div>
+        <div id="detailsError" class="alert alert-danger d-none"></div>
+
+        <div id="detailsContent" class="d-none">
+
+          <div class="p-3 rounded bg-light border mb-3 d-flex flex-wrap align-items-center gap-2">
+            <span class="badge rounded-pill text-bg-secondary" id="d_id_badge">#-</span>
+            <span class="badge rounded-pill" id="d_status_badge">-</span>
+            <span class="text-muted">|</span>
+            <span class="small"><span class="fw-bold">المعمل:</span> <span id="d_factory"></span></span>
+            <span class="text-muted">|</span>
+            <span class="small"><span class="fw-bold">نوع الطلبية:</span> <span id="d_cargo_type"></span></span>
+            <span class="text-muted">|</span>
+            <span class="small"><span class="fw-bold">نوع الشحن:</span> <span id="d_shipping_mode"></span></span>
+          </div>
+
+          <div class="row g-3">
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">بيانات الفاتورة</h6>
+                  <div class="row g-2 shipment-detail-grid">
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">رقم الفاتورة</div><div class="shipment-detail-value" id="d_invoice_no">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">تاريخ الفاتورة</div><div class="shipment-detail-value" id="d_invoice_date">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">مبلغ الفاتورة</div><div class="shipment-detail-value" id="d_invoice_amount">-</div></div></div>
+                      </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">بيانات الشحن</h6>
+                  <div class="row g-2 shipment-detail-grid">
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">رقم البوليصة</div><div class="shipment-detail-value" id="d_bol_no">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">عدد الحاويات</div><div class="shipment-detail-value" id="d_containers_count">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">مبلغ الشحن</div><div class="shipment-detail-value" id="d_shipping_cost">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">دفع الشحن من قبل</div><div class="shipment-detail-value" id="d_shipping_paid_by">-</div></div></div>
+                      </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">التواريخ والوجهة</h6>
+                  <div class="row g-2 shipment-detail-grid">
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">البلد</div><div class="shipment-detail-value" id="d_country">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">موعد الشحن</div><div class="shipment-detail-value" id="d_ship_date">-</div></div></div>
+                        <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">موعد الوصول</div><div class="shipment-detail-value" id="d_arrival_date">-</div></div></div>
+                      </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">الخدمات المرتبطة</h6>
+                  <div class="row g-2 shipment-detail-grid">
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">شركة النقل</div><div class="shipment-detail-value" id="d_carrier">-</div></div></div>
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">المخلص</div><div class="shipment-detail-value" id="d_clearer">-</div></div></div>
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">مبلغ التخليص</div><div class="shipment-detail-value" id="d_clearance_cost">-</div></div></div>
+                    <div class="col-12 col-sm-6"><div class="shipment-detail-item"><div class="shipment-detail-label">حالة التخليص</div><div class="shipment-detail-value" id="d_clearance_status">-</div></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-2">تتبع الشحنة — بيانات المسار</h6>
+                  <div class="text-muted small mb-2">بيانات مسار الشحنة حسب آخر تحديث متوفر في نظام PORTEXA.</div>
+                  <div class="row g-2 shipment-detail-grid" id="d_msc_tracking">-</div>
+                  <div class="mt-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" type="button" onclick="refreshTracking()">تحديث العرض</button>
+                    <span class="text-muted small" id="d_track_hint"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">تفاصيل أخرى</h6>
+                  <div class="border rounded p-2 bg-light" style="min-height:120px; white-space:pre-wrap" id="d_other_details">-</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="mb-3">تفاصيل الشحن</h6>
+                  <div class="border rounded p-2 bg-light" style="min-height:120px; white-space:pre-wrap" id="d_shipping_details">-</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let _lastShipmentId = null;
+
+  function badgeStatusClass(statusText){
+    if(statusText.includes("جديدة")) return "text-bg-danger";
+    if(statusText.includes("قيد")) return "text-bg-warning";
+    if(statusText.includes("مستلمة")) return "text-bg-success";
+    return "text-bg-secondary";
+  }
+
+  function setText(id, value){ document.getElementById(id).innerText = value || "-"; }
+
+  function showManualTracking(route){
+    const box = document.getElementById("d_msc_tracking");
+    const hint = document.getElementById("d_track_hint");
+    if(!route){
+      box.replaceChildren(); const empty=document.createElement("div"); empty.className="col-12 text-muted small"; empty.textContent="لا تتوفر تفاصيل مسار لهذه الشحنة حالياً."; box.append(empty);
+      hint.innerText = "";
+      return;
+    }
+    const fields = [
+      ["ميناء التحميل", "loading_port"], ["الميناء الحالي", "current_port"],
+      ["الميناء التالي", "next_port"], ["ميناء التفريغ", "discharge_port"],
+      ["ميناء الترانزيت", "transshipment_port"], ["السفينة", "vessel_name"],
+      ["رقم الرحلة", "voyage_number"], ["رقم الحاوية", "container_number"],
+      ["موعد المغادرة المتوقع", "etd"], ["موعد الوصول المتوقع", "eta"],
+      ["الحالة", "current_status"], ["ملاحظات", "operator_notes"]
+    ];
+    box.replaceChildren(...fields.map(([label,key]) => { const col=document.createElement("div"); col.className="col-12 col-sm-6"; const item=document.createElement("div"); item.className="shipment-detail-item"; const heading=document.createElement("div"); heading.className="shipment-detail-label"; heading.textContent=label; const value=document.createElement("div"); value.className="shipment-detail-value"; value.textContent=route[key] || "—"; item.append(heading,value); col.append(item); return col; }));
+    hint.innerText = "آخر تحديث للمسار: " + (route.updated_at || "غير متوفر");
+  }
+
+  function refreshTracking(){
+    if(_lastShipmentId === null) return;
+    fetch(`/shipments/${_lastShipmentId}/details`, {cache:"no-store"})
+      .then(res => {if(!res.ok) throw Error("HTTP " + res.status); return res.json()})
+      .then(data => showManualTracking(data.manual_tracking))
+      .catch(() => document.getElementById("d_track_hint").innerText = "تعذر تحديث العرض");
+  }
+
+  async function openDetails(shipmentId){
+    // ensure bootstrap exists
+    if(typeof bootstrap === "undefined"){
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js";
+      s.onload = () => openDetails(shipmentId);
+      document.head.appendChild(s);
+      return;
+    }
+
+    const modalEl = document.getElementById("detailsModal");
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    document.getElementById("detailsError").classList.add("d-none");
+    document.getElementById("detailsLoading").classList.remove("d-none");
+    document.getElementById("detailsContent").classList.add("d-none");
+
+    try{
+      const res = await fetch(`/shipments/${shipmentId}/details`, {cache:"no-store"});
+      if(!res.ok){
+        document.getElementById("detailsLoading").classList.add("d-none");
+        const e = document.getElementById("detailsError");
+        e.classList.remove("d-none");
+        e.innerText = `تعذر جلب التفاصيل (HTTP ${res.status})`;
+        return;
+      }
+
+      const d = await res.json();
+
+      document.getElementById("d_header_sub").innerText = `#${d.id} — ${d.status}`;
+      document.getElementById("d_id_badge").innerText = "#" + d.id;
+
+      const stBadge = document.getElementById("d_status_badge");
+      stBadge.className = "badge rounded-pill " + badgeStatusClass(d.status);
+      stBadge.innerText = d.status;
+
+      setText("d_factory", d.factory);
+      setText("d_cargo_type", d.cargo_type);
+      setText("d_shipping_mode", d.shipping_mode);
+
+      setText("d_invoice_no", d.invoice_no);
+      setText("d_invoice_date", d.invoice_date);
+      setText("d_invoice_amount", (d.invoice_amount || "-") + " " + (d.invoice_currency || ""));
+
+      setText("d_bol_no", d.bol_no);
+      setText("d_containers_count", (d.containers_count ?? "-"));
+      setText("d_shipping_cost", d.shipping_cost);
+      setText("d_shipping_paid_by", d.shipping_paid_by);
+      setText("d_carrier", d.carrier);
+      setText("d_clearer", d.clearer);
+      setText("d_clearance_cost", d.clearance_cost);
+      setText("d_clearance_status", d.clearance_status);
+
+      setText("d_country", d.country);
+      setText("d_ship_date", d.ship_date);
+      setText("d_arrival_date", d.arrival_date);
+
+      setText("d_other_details", d.other_details);
+      setText("d_shipping_details", d.shipping_details);
+
+      document.getElementById("detailsLoading").classList.add("d-none");
+      document.getElementById("detailsContent").classList.remove("d-none");
+
+      _lastShipmentId = d.id;
+      showManualTracking(d.manual_tracking);
+
+    }catch(err){
+      document.getElementById("detailsLoading").classList.add("d-none");
+      const e = document.getElementById("detailsError");
+      e.classList.remove("d-none");
+      e.innerText = "خطأ بالاتصال أو JavaScript.";
+    }
+  }
+</script>
+
+{% endblock %}

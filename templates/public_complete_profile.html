@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0c1c34">
+<title>استكمال التسجيل | PORTEXA</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c1c34;color:#f6f8fc;font-family:Tahoma,Arial,sans-serif;line-height:1.7}
+main{width:min(740px,calc(100% - 28px));margin:30px auto 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}
+.brand{font-size:1.6rem;font-weight:900;letter-spacing:2px;color:#d6b66e}
+a{color:#d6b66e;text-decoration:none}.panel{background:#142c4c;border:1px solid #3a5578;border-radius:20px;padding:clamp(18px,4vw,36px)}
+h1{margin:0 0 8px;font-size:clamp(1.5rem,4vw,2.2rem)}.intro{color:#b9c8db;margin:0 0 24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}.wide{grid-column:1/-1}
+label{font-weight:700;font-size:.94rem}input,select{font:inherit;width:100%;min-height:48px;border-radius:10px;border:1px solid #7890ad;background:#f8fafc;color:#17233b;padding:10px 12px}
+input:focus,select:focus{outline:3px solid #d6b66e;outline-offset:1px}
+input[readonly]{background:#dfe5ee;color:#38475e}.help{font-size:.78rem;color:#bac7d8}
+button{margin-top:23px;width:100%;min-height:52px;border:0;border-radius:12px;background:#d6b66e;color:#12243b;font:inherit;font-weight:800;cursor:pointer}
+.errors{background:#603735;border:1px solid #f6a7a0;border-radius:10px;padding:12px 16px;margin-bottom:20px}
+.note{font-size:.82rem;color:#bdc9d9;margin-top:16px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style>  <!-- PORTEXA PWA -->
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#0C1C34">
+  <link rel="apple-touch-icon" href="/static/icons/icon-light-192.png">
+</head><body><main>
+<header><a class="brand" href="{{ url_for('onboarding.landing') }}">PORTEXA</a><a href="{{ url_for('onboarding.landing') }}">العودة للرئيسية</a></header>
+<section class="panel"><h1>استكمال بيانات {{ role_label }}</h1>
+<p class="intro">تم التحقق من بريدك بواسطة Google. أكمل البيانات المطلوبة حتى نفعّل تجربتك المجانية.</p>
+{% if errors %}<div class="errors" role="alert"><strong>يرجى تصحيح التالي:</strong><ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul></div>{% endif %}
+<form method="post" action="{{ url_for('onboarding.complete_profile') }}">
+<input type="hidden" name="csrf" value="{{ pending.csrf }}">
+<div class="grid">
+<div class="field wide"><label for="email">البريد الإلكتروني الموثّق</label><input id="email" type="email" value="{{ pending.email }}" readonly><span class="help">تم تأكيده بواسطة Google، ولا يمكن تغييره هنا.</span></div>
+<div class="field wide"><label for="full_name">الاسم الثلاثي الكامل *</label><input id="full_name" name="full_name" value="{{ values.get('full_name','') }}" autocomplete="name" minlength="8" maxlength="200" required placeholder="مثال: علي أحمد سليم"></div>
+<div class="field"><label for="phone">رقم الهاتف العراقي *</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" value="{{ values.get('phone','') }}" pattern="(07[3-9][0-9]{8}|\+9647[3-9][0-9]{8}|009647[3-9][0-9]{8})" required placeholder="07701234567"><span class="help">يُفحص تنسيق الرقم، وتأكيد ملكيته عبر SMS لاحقاً.</span></div>
+<div class="field"><label for="governorate">المحافظة *</label><select id="governorate" name="governorate" required><option value="">اختر المحافظة</option>{% for gov in governorates %}<option value="{{ gov }}" {% if values.get('governorate') == gov %}selected{% endif %}>{{ gov }}</option>{% endfor %}</select></div>
+<div class="field wide"><label for="company_name">اسم الشركة أو المكتب *</label><input id="company_name" name="company_name" value="{{ values.get('company_name','') }}" minlength="3" maxlength="200" required placeholder="الاسم الرسمي للشركة أو المكتب"></div>
+<div class="field wide"><label for="business_name">الاسم التجاري / اسم نشاط {{ role_label }} *</label><input id="business_name" name="business_name" value="{{ values.get('business_name','') }}" minlength="3" maxlength="150" required placeholder="اسم النشاط أو الخدمة التي تقدمها"></div>
+<div class="field"><label for="city">المدينة أو منطقة العمل *</label><input id="city" name="city" value="{{ values.get('city','') }}" minlength="3" maxlength="100" required placeholder="المنطقة"></div>
+<div class="field wide"><label for="address">عنوان مقر العمل *</label><input id="address" name="address" value="{{ values.get('address','') }}" minlength="3" maxlength="300" required placeholder="الشارع، المحلة، أقرب نقطة دالة"></div>
+</div>
+<button type="submit">إنشاء حسابي وتفعيل التجربة المجانية</button>
+<p class="note">التجربة المجانية مدتها 3 أيام. لا تُطلب منك بيانات دفع.</p>
+</form></section></main>  <script src="/static/pwa-register.js" defer></script>
+</body></html>

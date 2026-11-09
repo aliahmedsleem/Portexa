@@ -1,0 +1,86 @@
+{% extends "support_base.html" if support_mode else "base.html" %}
+{% block title %}تذكرة #{{ ticket.id }}{% endblock %}
+{% block content %}
+<div class="ticket-layout">
+  <section class="ticket-panel">
+    <div class="ticket-header">
+      <div>
+        <div class="text-muted small">تذكرة رقم #{{ ticket.id }}</div>
+        <h4 class="mb-1">{{ ticket.subject }}</h4>
+        <div class="small text-muted">العميل: {{ ticket.user.company_name or ticket.user.username }} · {{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        {% if ticket.status == 'OPEN' %}<span class="badge text-bg-success align-self-start">مفتوحة</span>{% else %}<span class="badge text-bg-secondary align-self-start">مغلقة</span>{% endif %}
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('support_tickets') if support_mode else url_for('tickets_list') }}">رجوع</a>
+      </div>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+      {% for m in ticket.messages %}
+      {% set mine = (m.sender_id == current_user.id) %}
+      <div class="chat-row {% if mine %}mine{% else %}other{% endif %}">
+        <div class="chat-bubble">
+          <div class="chat-meta">{{ m.sender.username }} · {{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          {% if m.body %}<div class="chat-text">{{ m.body }}</div>{% endif %}
+          {% if m.attachment_path %}
+            <a class="chat-image-link" href="{{ url_for('static', filename=m.attachment_path) }}" target="_blank">
+              <img src="{{ url_for('static', filename=m.attachment_path) }}" alt="مرفق التذكرة">
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if ticket.status == 'OPEN' %}
+    <form method="post" enctype="multipart/form-data" class="chat-composer">
+      <input type="hidden" name="action" value="message">
+      <textarea name="body" class="form-control" rows="2" placeholder="اكتب رسالتك..."></textarea>
+      <div class="composer-actions">
+        <input class="form-control" type="file" name="attachment" accept="image/*">
+        <button class="btn btn-primary">إرسال</button>
+      </div>
+    </form>
+    {% else %}
+      <div class="closed-note">هذه التذكرة مغلقة. يمكن للمستخدم فتح تذكرة جديدة عند الحاجة.</div>
+    {% endif %}
+  </section>
+
+  {% if support_mode %}
+  <aside class="ticket-side-card">
+    <h6>تفاصيل العميل</h6>
+    <div class="info-line"><span>الشركة</span><strong>{{ ticket.user.company_name or '-' }}</strong></div>
+    <div class="info-line"><span>المالك</span><strong>{{ ticket.user.owner_name or '-' }}</strong></div>
+    <div class="info-line"><span>الهاتف</span><strong>{{ ticket.user.phone or '-' }}</strong></div>
+    <div class="info-line"><span>البريد</span><strong>{{ ticket.user.email or '-' }}</strong></div>
+    <hr>
+    <div class="info-line"><span>الموظف المسؤول</span><strong>{{ ticket.assigned_to.username if ticket.assigned_to else 'غير محدد' }}</strong></div>
+    {% if ticket.status == 'OPEN' %}
+    <form method="post" onsubmit="return confirm('هل تريد إغلاق التذكرة؟');" class="mt-3">
+      <input type="hidden" name="action" value="close">
+      <button class="btn btn-danger w-100">إغلاق التذكرة</button>
+    </form>
+    {% endif %}
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const chatBox = document.getElementById('chatBox');
+  if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    function softPing(){
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.035, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+      osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.24);
+    }
+    document.querySelectorAll('.chat-composer').forEach(f => f.addEventListener('submit', () => { if(ctx.state === 'suspended') ctx.resume(); softPing(); }));
+  } catch(e) {}
+</script>
+{% endblock %}

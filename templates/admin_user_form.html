@@ -1,0 +1,117 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ "إنشاء مستخدم" if not user else "تعديل مستخدم" }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3 portexa-list-heading">
+  <div>
+    <h4 class="mb-1">{{ "إنشاء مستخدم" if not user else "عرض/تعديل المستخدم" }}</h4>
+    <div class="text-muted small">إدارة بيانات الحساب والصلاحيات والاشتراك.</div>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form method="post">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">اسم المستخدم</label>
+          <input name="username" class="form-control" value="{{ user.username if user else '' }}" required>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">نوع الحساب</label>
+          <input class="form-control" value="{{ 'مدير النظام' if user and user.is_admin else 'تاجر' }}" disabled>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">{{ 'كلمة المرور' if not user else 'تغيير كلمة المرور' }}</label>
+          <input name="{{ 'password' if not user else 'new_password' }}" type="password" class="form-control" {% if not user %}required{% endif %} placeholder="{% if user %}اتركه فارغاً إذا لا تريد تغييرها{% endif %}">
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">نوع الاشتراك</label>
+          <select name="plan_type" class="form-select">
+            <option value="TRIAL" {{ 'selected' if user and user.plan_type=='TRIAL' else '' }}>تجريبي - 3 أيام</option>
+            <option value="MONTHLY" {{ 'selected' if user and user.plan_type=='MONTHLY' else '' }}>شهري</option>
+            <option value="YEARLY" {{ 'selected' if user and user.plan_type=='YEARLY' else '' }}>سنوي</option>
+            <option value="TWO_YEARS" {{ 'selected' if user and user.plan_type=='TWO_YEARS' else '' }}>سنتين</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="my-4">
+      <h6 class="fw-bold mb-3">تفاصيل المستخدم / الشركة</h6>
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">اسم الشركة</label>
+          <input name="company_name" class="form-control" value="{{ user.company_name if user else '' }}">
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">اسم المالك</label>
+          <input name="owner_name" class="form-control" value="{{ user.owner_name if user else '' }}">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">رقم الهاتف</label>
+          <input name="phone" class="form-control" value="{{ user.phone if user else '' }}">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">البريد الإلكتروني</label>
+          <input name="email" type="email" class="form-control" value="{{ user.email if user else '' }}">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">العنوان</label>
+          <input name="address" class="form-control" value="{{ user.address if user else '' }}">
+        </div>
+      </div>
+
+      {% if not user %}
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" name="activate_now" value="1" id="activateNow">
+        <label class="form-check-label" for="activateNow">تفعيل الحساب مباشرة بعد الإنشاء</label>
+      </div>
+
+      <div class="mt-4 d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary">إنشاء المستخدم</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
+      </div>
+      {% else %}
+      <hr class="my-4">
+
+      <div class="row g-3 align-items-end">
+        <div class="col-12">
+          <div class="text-muted small mb-1">رمز اللايسنس المولّد تلقائياً</div>
+          <code class="d-block p-3 bg-light rounded-3 text-break">{{ user.license_key }}</code>
+        </div>
+
+        <div class="col-12">
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% if not user.license_activated %}
+              <button type="submit" name="activate_license" value="1" class="btn btn-success px-4">تفعيل اللايسنس تلقائياً</button>
+            {% else %}
+              <span class="badge bg-success px-3 py-2">اللايسنس مفعل</span>
+            {% endif %}
+            {% if user.license_activated and not user.is_admin %}
+              <button type="submit" name="deactivate" value="1" class="btn btn-outline-danger">إلغاء التفعيل</button>
+            {% endif %}
+          </div>
+          <div class="text-muted small mt-2">لا حاجة لنسخ الرمز أو إدخاله يدوياً. يبدأ احتساب الاشتراك عند التفعيل.</div>
+        </div>
+      </div>
+
+      <div class="mt-3 d-flex flex-wrap gap-2">
+        <button name="reset_expiry" value="1" class="btn btn-outline-primary">إعادة ضبط مدة الاشتراك</button>
+        <button name="regen_license" value="1" class="btn btn-outline-secondary">توليد License جديد</button>
+        <button class="btn btn-primary">حفظ التعديلات</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إغلاق</a>
+      </div>
+
+      <div class="mt-3 text-muted small">
+        الحالة: {{ user.status_text() }} | المتبقي: {{ user.remaining_days() }} يوم
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% endblock %}

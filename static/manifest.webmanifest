@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "PORTEXA | منصة إدارة الشحنات",
+  "short_name": "PORTEXA",
+  "description": "منصة PORTEXA لإدارة الشحنات والخدمات اللوجستية",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/welcome",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0C1C34",
+  "icons": [
+    {
+      "src": "/static/icons/icon-light-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-light-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

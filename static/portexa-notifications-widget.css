@@ -1,0 +1,24 @@
+.px-notify-shell{position:fixed;top:15px;left:20px;z-index:1050;font-family:Cairo,Tahoma,sans-serif;direction:rtl}.px-notify-bell{position:relative;width:45px;height:45px;border:1px solid #d7dce4;border-radius:50%;background:#fff;box-shadow:0 4px 15px #001a3622;font-size:21px;cursor:pointer}.px-notify-count{position:absolute;top:-6px;right:-7px;min-width:20px;height:20px;border-radius:20px;background:#b52331;color:white;font-size:11px;line-height:20px}.px-notify-panel{position:absolute;top:53px;left:0;width:min(360px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:white;color:#16243b;border:1px solid #e4e8ee;border-radius:15px;box-shadow:0 15px 45px #00172e30}.px-notify-panel[hidden],.px-push-overlay[hidden]{display:none!important}.px-notify-head{padding:14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee}.px-notify-head button{border:0;background:transparent;font-size:24px}.px-notify-item{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-bottom:1px solid #eee;text-decoration:none;color:inherit}.px-notify-item span{font-size:12px;color:#637085}.px-notify-item.px-unread{background:#f4f8ff}.px-notify-empty{padding:18px}.px-notify-all{display:block;padding:12px;text-align:center;color:#1d5285;text-decoration:none}.px-push-overlay{position:fixed;inset:0;background:#00162880;z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;direction:rtl}.px-push-dialog{width:min(440px,100%);background:#fff;color:#1b2b42;border-radius:20px;padding:28px;box-shadow:0 20px 70px #0003;font-family:Cairo,Tahoma,sans-serif;text-align:center}.px-push-icon{font-size:34px}.px-push-dialog h3{font-size:21px;font-weight:800}.px-push-dialog p{font-size:14px;color:#586678}.px-push-consent{display:block;text-align:right;font-size:13px;margin:18px 0}.px-push-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.px-push-actions button{padding:10px 20px;border-radius:10px;border:1px solid #d8dfe7;background:#f4f6fa}.px-push-actions #px-push-accept{background:#142b4b;color:white;border-color:#142b4b}@media(max-width:767px){.px-notify-shell{top:9px;left:10px}.px-notify-bell{width:39px;height:39px;font-size:18px}.px-notify-panel{left:0}}
+/* Notification center v2: readable, in-place details, mobile friendly. */
+.px-notify-panel{width:min(430px,calc(100vw - 20px));max-height:min(78vh,720px);overflow:hidden;display:flex;flex-direction:column;border-radius:18px}
+.px-notify-head{flex:none;padding:16px 18px;background:#fff}
+.px-notify-head strong{display:block;font-size:16px;color:#132b4b}
+.px-notify-head small{display:block;margin-top:3px;font-size:11px;color:#77869b}
+.px-notify-head button{cursor:pointer;color:#65758a;padding:0 8px}
+.px-notify-list{overflow-y:auto;overscroll-behavior:contain;flex:1;min-height:0}
+.px-notify-item{display:block;padding:0;background:#fff;border-bottom:1px solid #e9eef4}
+.px-notify-item.px-unread{background:#e7f3ff;border-right:3px solid #438ed1}
+.px-notify-item.px-read{background:#fff}
+.px-notify-entry{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:13px 15px;border:0;background:transparent;text-align:right;direction:rtl;color:#1b314c;font:inherit;cursor:pointer}
+.px-notify-entry-main{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.px-notify-entry-main strong{font-size:13px;line-height:1.6}
+.px-notify-preview{font-size:12px;line-height:1.65;color:#61758d;overflow-wrap:anywhere}
+.px-notify-chevron{font-size:18px;color:#7187a0;transition:transform .2s}
+.px-notify-entry[aria-expanded="true"] .px-notify-chevron{transform:rotate(180deg)}
+.px-notify-detail{padding:0 16px 15px;overflow-wrap:anywhere}
+.px-notify-detail[hidden],.px-notify-count[hidden]{display:none!important}
+.px-notify-detail p{margin:0 0 12px;font-size:13px;line-height:1.9;color:#334963;white-space:pre-wrap}
+.px-notify-context{display:inline-block;padding:7px 11px;border-radius:8px;background:#17365c;color:#fff!important;font-size:12px;text-decoration:none}
+.px-notify-footer{flex:none;padding:10px 14px;text-align:center;font-size:11px;color:#77869b;background:#f8fafc;border-top:1px solid #e9eef4}
+.px-notify-empty{padding:28px 15px;text-align:center;color:#72839a}
+@media(max-width:767px){.px-notify-panel{position:fixed;top:55px;left:10px;right:10px;width:auto;max-height:calc(100dvh - 80px);border-radius:16px}.px-notify-head{padding:13px 15px}.px-notify-entry{padding:12px}}

@@ -1,0 +1,23 @@
+{% extends "admin_base.html" %}
+{% block title %}مستخدمي الدعم الفني{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4 portexa-list-heading">
+  <div>
+    <h4 class="mb-1">مستخدمي الدعم الفني</h4>
+    <div class="text-muted small">حسابات مخصصة لموظفي التكتات فقط، ولا تظهر لهم بيانات الشحنات.</div>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('admin_support_users_new') }}">+ إنشاء موظف دعم</a>
+</div>
+<div class="card border-0 shadow-sm"><div class="card-body table-responsive">
+<table class="table align-middle">
+<thead class="table-light"><tr><th>#</th><th>اسم المستخدم</th><th>اسم الموظف</th><th>الهاتف</th><th>البريد</th><th>الحالة</th><th class="text-end">إجراءات</th></tr></thead>
+<tbody>
+{% for u in staff %}
+<tr>
+<td>{{ u.id }}</td><td class="fw-bold">{{ u.username }}</td><td>{{ u.owner_name or '-' }}</td><td>{{ u.phone or '-' }}</td><td>{{ u.email or '-' }}</td>
+<td>{% if u.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-danger">متوقف</span>{% endif %}</td>
+<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_support_users_edit', user_id=u.id) }}">عرض/تعديل</a></td>
+</tr>
+{% else %}<tr><td colspan="7" class="text-center text-muted py-4">لا توجد حسابات دعم فني.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

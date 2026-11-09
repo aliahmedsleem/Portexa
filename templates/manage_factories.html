@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h5 class="mb-2">إضافة معمل</h5>
+        <form method="post">
+          <label class="form-label">اسم المعمل</label>
+          <input name="name" class="form-control" placeholder="مثال: معمل الرافدين">
+          <button class="btn btn-primary mt-3 w-100">حفظ</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h5 class="mb-2">عرض المعامل</h5>
+
+        <div class="portexa-mobile-only portexa-card-list">
+          {% for f in factories %}
+          <article class="portexa-data-card">
+            <div class="portexa-data-card__head"><strong class="portexa-data-card__title">معمل #{{ f.id }}</strong></div>
+            <form method="post" action="{{ url_for('update_factory', factory_id=f.id) }}">
+              <label class="form-label" for="mobile-f-{{ f.id }}">اسم معمل</label>
+              <input id="mobile-f-{{ f.id }}" name="name" class="form-control" value="{{ f.name }}" required>
+              <div class="portexa-data-card__actions"><button type="submit" class="btn btn-outline-primary w-100">حفظ التعديل</button></div>
+            </form>
+            <div class="portexa-data-card__actions">
+              <form method="post" action="{{ url_for('delete_factory', factory_id=f.id) }}" onsubmit="return confirm('حذف معمل؟');"><button class="btn btn-outline-danger" type="submit">حذف</button></form>
+            </div>
+          </article>
+          {% else %}<div class="portexa-data-card text-center text-muted">لا توجد معامل.</div>{% endfor %}
+        </div>
+        <div class="table-responsive portexa-desktop-only">
+          <table class="table align-middle">
+            <thead class="table-light">
+              <tr><th>#</th><th>الاسم</th><th class="text-end">إجراءات</th></tr>
+            </thead>
+            <tbody>
+              {% for f in factories %}
+              <tr>
+                <td class="fw-bold">{{ f.id }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('update_factory', factory_id=f.id) }}" class="d-flex gap-2">
+                    <input name="name" class="form-control" value="{{ f.name }}">
+                    <button class="btn btn-outline-primary">تعديل</button>
+                  </form>
+                </td>
+                <td class="text-end">
+                  <form method="post" action="{{ url_for('delete_factory', factory_id=f.id) }}"
+                        onsubmit="return confirm('حذف المعمل؟');">
+                    <button class="btn btn-outline-danger">حذف</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if factories|length == 0 %}
+              <tr><td colspan="3" class="text-center text-muted py-4">لا توجد معامل.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "admin_base.html" if current_user.is_admin else "support_base.html" if current_user.is_support else "advertiser_base.html" if current_user.is_advertiser else "provider_base.html" if current_user.is_clearer or current_user.is_carrier else "base.html" %}
+{% block title %}مركز الإشعارات | PORTEXA{% endblock %}
+{% block content %}
+<section class="portexa-notification-center">
+<div class="card border-0 shadow-sm mb-3"><div class="card-body">
+<h5>إشعارات المتصفح</h5><p class="text-muted small">تفعيل الإشعارات اختياري. يمكنك اختيار استقبال العروض الإعلانية أو إيقافها.</p>
+<div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="push-ads"><label class="form-check-label" for="push-ads">أوافق على استقبال الإشعارات الإعلانية</label></div>
+<button class="btn btn-primary btn-sm" type="button" id="push-enable">تفعيل الإشعارات</button>
+<button class="btn btn-outline-secondary btn-sm" type="button" id="push-disable">إيقاف إشعارات هذا الجهاز</button>
+<div id="push-status" class="small mt-2" role="status"></div>
+</div></div>
+<script>
+(async()=>{
+const status=document.getElementById('push-status');
+const enable=document.getElementById('push-enable');
+const disable=document.getElementById('push-disable');
+if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){status.textContent='المتصفح لا يدعم Web Push';enable.disabled=true;return;}
+const config=await fetch('/push/config',{credentials:'same-origin'}).then(r=>r.json()).catch(()=>null);
+if(!config?.publicKey){status.textContent='الإشعارات غير مفعلة على السيرفر بعد';enable.disabled=true;return;}
+function bytes(base64){const b=atob(base64.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-base64.length%4)%4));return Uint8Array.from(b,c=>c.charCodeAt(0))}
+const reg=await navigator.serviceWorker.register('/push/sw.js',{scope:'/push/'});
+enable.addEventListener('click',async()=>{
+try{
+const permission=await Notification.requestPermission();
+if(permission!=='granted'){status.textContent='لم يتم منح إذن الإشعارات';return;}
+const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes(config.publicKey)});
+const response=await fetch('/push/subscribe',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Push-CSRF':config.csrf},body:JSON.stringify({subscription:sub.toJSON(),ads_enabled:document.getElementById('push-ads').checked})});
+if(!response.ok)throw Error('تعذر حفظ الاشتراك');
+status.textContent='تم تفعيل إشعارات هذا الجهاز';
+}catch(e){status.textContent=e.message}
+});
+disable.addEventListener('click',async()=>{
+try{const sub=await reg.pushManager.getSubscription();if(sub){const response=await fetch('/push/unsubscribe',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Push-CSRF':config.csrf},body:JSON.stringify({endpoint:sub.endpoint})});if(!response.ok)throw Error('تعذر إلغاء الاشتراك');await sub.unsubscribe()}status.textContent='تم إيقاف الإشعارات';}catch(e){status.textContent=e.message}
+});
+})().catch(()=>{document.getElementById('push-status').textContent='تعذر تهيئة الإشعارات'});
+</script>
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div><h4 class="mb-1">مركز الإشعارات</h4><p class="small text-muted mb-0">التحديثات الخاصة بحسابك فقط، مرتبة من الأحدث إلى الأقدم.</p></div>
+    <form method="post" action="{{ url_for('notifications_read_all') }}"><button class="btn btn-outline-primary btn-sm" type="submit" {% if not notification_count() %}disabled{% endif %}>تحديد الكل كمقروء</button></form>
+  </div>
+  <div class="portexa-notification-filters" aria-label="تصنيف الإشعارات">
+    {% for key, label in categories.items() %}
+      <a href="{{ url_for('notifications_list', category=key, unread='1' if unread_only else '0') }}" class="btn btn-sm {{ 'btn-primary' if selected == key else 'btn-outline-secondary' }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <div class="d-flex align-items-center gap-2 my-3">
+    <a class="btn btn-sm {{ 'btn-outline-primary' if unread_only else 'btn-primary' }}" href="{{ url_for('notifications_list', category=selected) }}">جميع الحالات</a>
+    <a class="btn btn-sm {{ 'btn-primary' if unread_only else 'btn-outline-primary' }}" href="{{ url_for('notifications_list', category=selected, unread='1') }}">غير المقروءة</a>
+  </div>
+  <div class="portexa-notification-items">
+    {% for n in notifications %}
+    {% set category = notification_category(n) %}
+    <a class="portexa-notification-item {{ 'is-unread' if not n.is_read else '' }}" href="{{ url_for('notification_open', notification_id=n.id) }}">
+      <div class="portexa-notification-item__top">
+        <span class="badge text-bg-{{ category[2] }}">{{ category[0] }}</span>
+        <time class="small text-muted" datetime="{{ n.created_at.isoformat() }}">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</time>
+      </div>
+      <strong>{{ n.title }}</strong>
+      <p>{{ n.body or '' }}</p>
+      <span class="portexa-notification-item__state">{{ '● جديد' if not n.is_read else 'تمت القراءة' }}</span>
+    </a>
+    {% else %}
+    <div class="portexa-data-card text-center text-muted py-5">لا توجد إشعارات ضمن هذا التصنيف.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
