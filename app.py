@@ -784,6 +784,36 @@ def manual_tracking_for_shipment(shipment_id):
         return None
 
 
+def container_tracking_for_shipment(shipment_id):
+    """Read independent per-container movements from the PORTEXA source database.
+
+    This uses the application's own database connection and never writes to it.
+    Older installations without the table simply return an empty list.
+    """
+    try:
+        connection = db.session.connection()
+        table = connection.exec_driver_sql(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='ops_container_movements'"
+        ).first()
+        if not table:
+            return []
+        columns = (
+            "container_number", "loading_port", "current_port", "next_port",
+            "discharge_port", "transshipment_port", "vessel_name",
+            "voyage_number", "etd", "eta", "current_status", "operator_notes"
+        )
+        rows = connection.exec_driver_sql(
+            "SELECT " + ",".join(columns) +
+            " FROM ops_container_movements WHERE shipment_id=? ORDER BY id",
+            (int(shipment_id),)
+        ).mappings().all()
+        return [dict(row) for row in rows]
+    except (sqlite3.Error, OSError) as exc:
+        app.logger.warning("Container movements unavailable for shipment %s: %s", shipment_id, exc)
+        return []
+
+
 # -------------------- Auth / Guards --------------------
 @login_manager.user_loader
 def load_user(user_id):
@@ -1134,6 +1164,7 @@ def shipment_details(shipment_id):
         "bol_no": s.bol_no or "",
         "msc_tracking": s.msc_tracking or "",
         "manual_tracking": manual_tracking_for_shipment(s.id),
+        "container_movements": container_tracking_for_shipment(s.id),
 
         "shipping_mode": mode,
         "cargo_type": cargo,
