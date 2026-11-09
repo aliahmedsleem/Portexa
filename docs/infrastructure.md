@@ -47,3 +47,12 @@ Certbot certificates observed for `portexa.urrisetech.com`, `business.urrisetech
 - `ip route get 104.153.151.6` returned `via 192.168.100.1 dev enp0s31f6 src 192.168.100.10`. This describes outbound routing to that address, **not** the inbound forwarding path for the public domain.
 - WireGuard connectivity alone does not prove that `104.153.151.6` is routed or forwarded to the server. Check policy routing and ingress/provider forwarding separately.
 - Public keys are not authentication secrets, but avoid including them unnecessarily in published documentation; private keys must never be committed.
+
+
+## DNS administration (user-provided configuration, 2026-11-09)
+
+- Authoritative DNS records are managed in Squarespace Domains for `urrisetech.com` (account DNS settings).
+- User-reported A records: apex (`@`), `portexa`, `business`, `console`, and `www` all point to `104.153.151.6`.
+- Proposed new A record: name `operations.portexa`, value `104.153.151.6`, TTL 5 minutes if supported. This yields `operations.portexa.urrisetech.com`.
+- This is a proposed change, **not yet verified as saved or propagated**. Do not alter existing A, MX, SPF or DKIM records.
+- DNS pointing to the public address does not itself establish HTTP/TLS ingress forwarding or a working Nginx virtual host.
