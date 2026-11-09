@@ -15,3 +15,7 @@ Feature branch `feature/employee-shipment-edit` contains employee shipment edits
 ## 2026-11-09 — Distinct public and outbound IPs
 
 PORTEXA DNS resolves to `104.153.151.6`, while the Ubuntu host outbound request reported `5.62.149.8`. These are not interchangeable. Exact provider ingress topology remains to be verified.
+
+## 2026-11-09 — Operations hostname reported working
+
+The operator confirmed that the Operations application is accessible at `https://operations.portexa.urrisetech.com` after configuring DNS, Nginx and TLS. This is a user-reported deployment success; external TLS, authentication hardening, and authorization tests have not yet been independently verified. Preserve the LAN-only fallback and do not expose Gunicorn port 8767 publicly.
