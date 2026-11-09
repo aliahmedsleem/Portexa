@@ -38,3 +38,12 @@ Certbot certificates observed for `portexa.urrisetech.com`, `business.urrisetech
 2. Determine whether the same ingress can serve a second TLS hostname on TCP 443.
 3. Create DNS record only after confirming correct ingress and ownership.
 4. Validate external HTTP-01 or DNS-01 certificate issuance path without disrupting the existing main site.
+
+
+## WireGuard observation (2026-11-09)
+
+- Interface `wg0` active; reported a recent handshake (30 seconds at capture time), persistent keepalive 25 seconds, and nonzero bidirectional transfer.
+- Peer endpoint: `23.156.200.196:1194`. Peer AllowedIPs includes `0.0.0.0/0` and `::/0`; interface fwmark `0xca6c`.
+- `ip route get 104.153.151.6` returned `via 192.168.100.1 dev enp0s31f6 src 192.168.100.10`. This describes outbound routing to that address, **not** the inbound forwarding path for the public domain.
+- WireGuard connectivity alone does not prove that `104.153.151.6` is routed or forwarded to the server. Check policy routing and ingress/provider forwarding separately.
+- Public keys are not authentication secrets, but avoid including them unnecessarily in published documentation; private keys must never be committed.
