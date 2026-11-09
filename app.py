@@ -1321,6 +1321,7 @@ def shipment_details(shipment_id):
         "bol_no": s.bol_no or "",
         "msc_tracking": s.msc_tracking or "",
         "manual_tracking": portexa_manual_tracking(s.id),
+        "container_movements": portexa_container_movements(s.id),
 
         "shipping_mode": mode,
         "cargo_type": cargo,
@@ -3025,6 +3026,35 @@ register_notification_legacy_redirect(app)
 if __name__ == "__main__":
     # يسمح بالدخول من أجهزة الشبكة
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+def portexa_container_movements(shipment_id):
+    """Read per-container tracking from the source shipment database, without writes."""
+    try:
+        database_path = db.engine.url.database
+        if not database_path:
+            return []
+        with sqlite3.connect(
+            Path(database_path).resolve().as_uri() + "?mode=ro",
+            uri=True, timeout=3,
+        ) as conn:
+            conn.row_factory = sqlite3.Row
+            exists = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='ops_container_movements'"
+            ).fetchone()
+            if not exists:
+                return []
+            return [dict(row) for row in conn.execute(
+                "SELECT container_number,loading_port,current_port,next_port,"
+                "discharge_port,transshipment_port,vessel_name,voyage_number,"
+                "etd,eta,current_status,operator_notes "
+                "FROM ops_container_movements WHERE shipment_id=? ORDER BY id",
+                (int(shipment_id),),
+            )]
+    except (sqlite3.Error, OSError, ValueError) as exc:
+        app.logger.warning("Container tracking read failed for shipment %s: %s", shipment_id, exc)
+        return []
+
 
 def portexa_manual_tracking(shipment_id):
     """Read manual tracking information from the separate engine database."""
