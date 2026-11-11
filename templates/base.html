@@ -65,13 +65,9 @@
 
       <a class="sidebar-link {% if request.endpoint == 'manage_factories' %}active{% endif %}" href="{{ url_for('manage_factories') }}">
         <span class="link-icon">◆</span>
-        <span>إدارة المعامل</span>
+        <span>إدارة الشاحن والبلد</span>
       </a>
 
-      <a class="sidebar-link {% if request.endpoint == 'manage_countries' %}active{% endif %}" href="{{ url_for('manage_countries') }}">
-        <span class="link-icon">◉</span>
-        <span>إدارة البلدان</span>
-      </a>
 
       {% if current_user.is_admin %}
       <a class="sidebar-link {% if request.endpoint in ['admin_dashboard', 'admin_users', 'admin_users_new', 'admin_users_edit'] %}active{% endif %}" href="{{ url_for('admin_users') }}">
@@ -115,8 +111,7 @@
         <a class="sidebar-link {% if request.endpoint == 'notifications_list' %}active{% endif %}" href="{{ url_for('notifications_list') }}">الإشعارات{% if notification_count() %} ({{ notification_count() }}){% endif %}</a>
         <a class="sidebar-link {% if request.endpoint in ['tickets_list', 'tickets_new', 'ticket_view'] %}active{% endif %}" href="{{ url_for('tickets_list') }}">الدعم الفني</a>
         <div class="sidebar-section-title">الإدارة</div>
-        <a class="sidebar-link {% if request.endpoint == 'manage_factories' %}active{% endif %}" href="{{ url_for('manage_factories') }}">إدارة المعامل</a>
-        <a class="sidebar-link {% if request.endpoint == 'manage_countries' %}active{% endif %}" href="{{ url_for('manage_countries') }}">إدارة البلدان</a>
+        <a class="sidebar-link {% if request.endpoint == 'manage_factories' %}active{% endif %}" href="{{ url_for('manage_factories') }}">إدارة الشاحن والبلد</a>
         {% if current_user.is_admin %}
         <a class="sidebar-link {% if request.endpoint in ['admin_dashboard', 'admin_users', 'admin_users_new', 'admin_users_edit'] %}active{% endif %}" href="{{ url_for('admin_users') }}">إدارة المستخدمين</a>
         {% endif %}
