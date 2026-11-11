@@ -149,6 +149,8 @@ class Factory(db.Model):
     # بدون unique حتى ما يتعارض بين المستخدمين
     name = db.Column(db.String(200), nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True, index=True)
+    country_id = db.Column(db.Integer, db.ForeignKey("country.id"), nullable=True, index=True)
+    country = db.relationship("Country", foreign_keys=[country_id])
 
 
 class Country(db.Model):
@@ -1357,15 +1359,14 @@ def shipments_new():
 
     if request.method == "POST":
         factory_id = request.form.get("factory_id")
-        country_id = request.form.get("country_id")
-        if not factory_id or not country_id or not str(factory_id).isdigit() or not str(country_id).isdigit():
-            flash("يرجى اختيار اسم المصنع والبلد.", "danger")
+        if not factory_id or not str(factory_id).isdigit():
+            flash("يرجى اختيار الشاحن.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=None)
 
         factory = owner_filter(Factory.query).filter(Factory.id == int(factory_id)).first()
-        country = owner_filter(Country.query).filter(Country.id == int(country_id)).first()
+        country = owner_filter(Country.query).filter(Country.id == factory.country_id).first() if factory and factory.country_id else None
         if not factory or not country:
-            flash("لا يمكن استخدام معمل أو بلد تابع لمستخدم آخر.", "danger")
+            flash("الشاحن غير مرتبط ببلد صالح. يرجى تحديد البلد من صفحة الشاحن والبلد.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=None)
 
         selected_clearer_id = request.form.get("clearer_id", type=int) or None
@@ -1391,18 +1392,18 @@ def shipments_new():
             invoice_currency=request.form.get("invoice_currency") or "USD",
 
             bol_no=request.form.get("bol_no") or None,
-            msc_tracking=(request.form.get("msc_tracking") or "").strip() or None,
+            msc_tracking=None,
 
             shipping_mode=request.form.get("shipping_mode") or "BRI",
             cargo_type=request.form.get("cargo_type") or "CONTAINER",
 
             containers_count=int(request.form.get("containers_count") or 0),
 
-            ship_date=parse_date(request.form.get("ship_date")),
-            arrival_date=parse_date(request.form.get("arrival_date")),
+            ship_date=None,
+            arrival_date=None,
 
             shipping_cost=to_float(request.form.get("shipping_cost")),
-            shipping_paid_by=request.form.get("shipping_paid_by") or None,
+            shipping_paid_by=None,
 
             other_details=request.form.get("other_details") or None,
             shipping_details=request.form.get("shipping_details") or None,
@@ -1452,15 +1453,14 @@ def shipments_edit(shipment_id):
 
     if request.method == "POST":
         factory_id = request.form.get("factory_id")
-        country_id = request.form.get("country_id")
-        if not factory_id or not country_id or not str(factory_id).isdigit() or not str(country_id).isdigit():
-            flash("يرجى اختيار اسم المصنع والبلد.", "danger")
+        if not factory_id or not str(factory_id).isdigit():
+            flash("يرجى اختيار الشاحن.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=shipment)
 
         factory = owner_filter(Factory.query).filter(Factory.id == int(factory_id)).first()
-        country = owner_filter(Country.query).filter(Country.id == int(country_id)).first()
+        country = owner_filter(Country.query).filter(Country.id == factory.country_id).first() if factory and factory.country_id else None
         if not factory or not country:
-            flash("لا يمكن استخدام معمل أو بلد تابع لمستخدم آخر.", "danger")
+            flash("الشاحن غير مرتبط ببلد صالح. يرجى تحديد البلد من صفحة الشاحن والبلد.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=shipment)
 
         shipment.factory_id = factory.id
@@ -1487,7 +1487,6 @@ def shipments_edit(shipment_id):
 
         if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
             shipment.bol_no = request.form.get("bol_no") or None
-        shipment.msc_tracking = (request.form.get("msc_tracking") or "").strip() or None
 
         shipment.shipping_mode = request.form.get("shipping_mode") or "BRI"
         shipment.cargo_type = request.form.get("cargo_type") or "CONTAINER"
@@ -1495,10 +1494,8 @@ def shipments_edit(shipment_id):
         shipment.containers_count = int(request.form.get("containers_count") or 0)
 
         if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
-            shipment.ship_date = parse_date(request.form.get("ship_date"))
-            shipment.arrival_date = parse_date(request.form.get("arrival_date"))
+            # Shipping dates remain managed by the carrier, not by merchant forms.
             shipment.shipping_cost = to_float(request.form.get("shipping_cost"))
-            shipment.shipping_paid_by = request.form.get("shipping_paid_by") or None
 
         shipment.other_details = request.form.get("other_details") or None
         if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
@@ -1555,18 +1552,27 @@ def manage_factories():
             flash("اسم المعمل مطلوب.", "danger")
             return redirect(url_for("manage_factories"))
 
-        existing_factory = owner_filter(Factory.query).filter(db.func.lower(Factory.name) == name.lower()).first()
+        existing_factory = owner_filter(Factory.query).filter(
+            db.func.lower(Factory.name) == name.lower()
+        ).first()
         if existing_factory:
             flash("هذا المعمل موجود مسبقاً ضمن حسابك.", "warning")
             return redirect(url_for("manage_factories"))
 
-        db.session.add(Factory(name=name, owner_id=current_owner_id()))
+        country_id = request.form.get("country_id", type=int)
+        country = owner_filter(Country.query).filter(Country.id == country_id).first() if country_id else None
+        if not country:
+            flash("اختر بلداً صحيحاً للشاحن.", "danger")
+            return redirect(url_for("manage_factories"))
+
+        db.session.add(Factory(name=name, owner_id=current_owner_id(), country_id=country.id))
         db.session.commit()
         flash("تمت إضافة المعمل.", "success")
         return redirect(url_for("manage_factories"))
 
     factories = owner_filter(Factory.query).order_by(Factory.name.asc()).all()
-    return render_template("manage_factories.html", factories=factories)
+    countries = owner_filter(Country.query).order_by(Country.name.asc()).all()
+    return render_template("manage_factories.html", factories=factories, countries=countries)
 
 
 @app.post("/manage/factories/<int:factory_id>/update")
@@ -1587,7 +1593,13 @@ def update_factory(factory_id):
         flash("هذا المعمل موجود مسبقاً ضمن حسابك.", "warning")
         return redirect(url_for("manage_factories"))
 
+    country_id = request.form.get("country_id", type=int)
+    country = owner_filter(Country.query).filter(Country.id == country_id).first() if country_id else None
+    if not country:
+        flash("اختر بلداً صحيحاً للشاحن.", "danger")
+        return redirect(url_for("manage_factories"))
     factory.name = name
+    factory.country_id = country.id
     db.session.commit()
     flash("تم تعديل المعمل بنجاح.", "success")
     return redirect(url_for("manage_factories"))
@@ -1662,7 +1674,8 @@ def delete_country(country_id):
     country = owner_filter(Country.query).filter(Country.id == country_id).first_or_404()
 
     linked_shipments_count = owner_filter(Shipment.query).filter(Shipment.country_id == country.id).count()
-    if linked_shipments_count > 0:
+    linked_factories_count = owner_filter(Factory.query).filter(Factory.country_id == country.id).count()
+    if linked_shipments_count > 0 or linked_factories_count > 0:
         flash("لا يمكن حذف البلد لأنه مرتبط بشحنات مسجلة. يمكنك تعديل اسمه بدلاً من الحذف.", "warning")
         return redirect(url_for("manage_countries"))
 
