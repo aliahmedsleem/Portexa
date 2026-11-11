@@ -32,7 +32,6 @@ button{margin-top:23px;width:100%;min-height:52px;border:0;border-radius:12px;ba
 <div class="field"><label for="phone">رقم الهاتف العراقي *</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" value="{{ values.get('phone','') }}" pattern="(07[3-9][0-9]{8}|\+9647[3-9][0-9]{8}|009647[3-9][0-9]{8})" required placeholder="07701234567"><span class="help">يُفحص تنسيق الرقم، وتأكيد ملكيته عبر SMS لاحقاً.</span></div>
 <div class="field"><label for="governorate">المحافظة *</label><select id="governorate" name="governorate" required><option value="">اختر المحافظة</option>{% for gov in governorates %}<option value="{{ gov }}" {% if values.get('governorate') == gov %}selected{% endif %}>{{ gov }}</option>{% endfor %}</select></div>
 <div class="field wide"><label for="company_name">اسم الشركة أو المكتب *</label><input id="company_name" name="company_name" value="{{ values.get('company_name','') }}" minlength="3" maxlength="200" required placeholder="الاسم الرسمي للشركة أو المكتب"></div>
-<div class="field wide"><label for="business_name">الاسم التجاري / اسم نشاط {{ role_label }} *</label><input id="business_name" name="business_name" value="{{ values.get('business_name','') }}" minlength="3" maxlength="150" required placeholder="اسم النشاط أو الخدمة التي تقدمها"></div>
 </div>
 <button type="submit">إنشاء حسابي وتفعيل التجربة المجانية</button>
 <p class="note">التجربة المجانية مدتها 3 أيام. لا تُطلب منك بيانات دفع.</p>
