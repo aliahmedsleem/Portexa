@@ -139,7 +139,7 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
         if request.method == "POST":
             if not secrets.compare_digest(request.form.get("csrf", ""), pending["csrf"]):
                 abort(400)
-            fields = ("full_name", "phone", "company_name", "business_name", "governorate")
+            fields = ("full_name", "phone", "company_name", "governorate")
             values = {key: " ".join((request.form.get(key) or "").strip().split()) for key in fields}
             full_name = values["full_name"]
             parts = full_name.split()
@@ -157,7 +157,6 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
             values["phone"] = phone
             for key, label, limit in (
                 ("company_name", "اسم الشركة أو المكتب", 200),
-                ("business_name", "الاسم التجاري أو اسم الخدمة", 150),
             ):
                 if len(values[key]) < 3 or len(values[key]) > limit:
                     errors.append(f"{label} مطلوب ويجب أن يتكون من 3 إلى {limit} حرف.")
@@ -176,13 +175,12 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
                         advertiser_type="MERCHANT",
                         email=pending["email"], owner_name=full_name,
                         phone=phone, company_name=values["company_name"],
-                        address=values["governorate"] + " | النشاط: " + values["business_name"],
+                        address=values["governorate"],
                         plan_type="TRIAL", starts_at=datetime.utcnow(),
                         expires_at=plan_to_expiry("TRIAL"),
                         license_key=generate_license_key(),
                         license_activated=True, is_active=True,
                     )
-                    # Existing User schema has no dedicated business_name column; retain activity and governorate in address metadata.
                     user.set_password(secrets.token_urlsafe(48))
                     try:
                         db.session.add(user)
