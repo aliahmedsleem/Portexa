@@ -1,15 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
 
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-1">إدارة الشاحنين والبلدان</h4>
+    <p class="text-muted small mb-0">
+      أضف الشاحن وحدد بلده مرة واحدة؛ يتم اختيار البلد تلقائياً عند إضافة الشحنة.
+    </p>
+  </div>
+  <a href="{{ url_for('manage_countries') }}" class="btn btn-outline-secondary">
+    إدارة البلدان
+  </a>
+</div>
+
 <div class="row g-3">
   <div class="col-lg-4">
     <div class="card shadow-sm border-0">
       <div class="card-body">
-        <h5 class="mb-2">إضافة معمل</h5>
+        <h5 class="mb-3">إضافة شاحن جديد</h5>
         <form method="post">
-          <label class="form-label">اسم المعمل</label>
-          <input name="name" class="form-control" placeholder="مثال: معمل الرافدين">
-          <button class="btn btn-primary mt-3 w-100">حفظ</button>
+          <label class="form-label" for="newName">اسم الشاحن (المعمل)</label>
+          <input id="newName" name="name" class="form-control"
+                 maxlength="200" required>
+
+          <label class="form-label mt-3" for="newCountry">البلد</label>
+          <select id="newCountry" name="country_id" class="form-select" required>
+            <option value="">اختر البلد</option>
+            {% for c in countries %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+
+          <button type="submit" class="btn btn-primary w-100 mt-3">
+            حفظ الشاحن والبلد
+          </button>
         </form>
       </div>
     </div>
@@ -18,49 +42,103 @@
   <div class="col-lg-8">
     <div class="card shadow-sm border-0">
       <div class="card-body">
-        <h5 class="mb-2">عرض المعامل</h5>
+        <h5 class="mb-3">الشاحنون المسجلون</h5>
 
         <div class="portexa-mobile-only portexa-card-list">
           {% for f in factories %}
           <article class="portexa-data-card">
-            <div class="portexa-data-card__head"><strong class="portexa-data-card__title">معمل #{{ f.id }}</strong></div>
-            <form method="post" action="{{ url_for('update_factory', factory_id=f.id) }}">
-              <label class="form-label" for="mobile-f-{{ f.id }}">اسم معمل</label>
-              <input id="mobile-f-{{ f.id }}" name="name" class="form-control" value="{{ f.name }}" required>
-              <div class="portexa-data-card__actions"><button type="submit" class="btn btn-outline-primary w-100">حفظ التعديل</button></div>
-            </form>
-            <div class="portexa-data-card__actions">
-              <form method="post" action="{{ url_for('delete_factory', factory_id=f.id) }}" onsubmit="return confirm('حذف معمل؟');"><button class="btn btn-outline-danger" type="submit">حذف</button></form>
+            <div class="portexa-data-card__head">
+              <strong class="portexa-data-card__title">{{ f.name }}</strong>
             </div>
+
+            <form method="post"
+                  action="{{ url_for('update_factory', factory_id=f.id) }}">
+              <label class="form-label">الشاحن</label>
+              <input name="name" class="form-control mb-2"
+                     value="{{ f.name }}" required>
+
+              <label class="form-label">البلد</label>
+              <select name="country_id" class="form-select mb-3" required>
+                <option value="">اختر البلد</option>
+                {% for c in countries %}
+                <option value="{{ c.id }}"
+                  {% if f.country_id == c.id %}selected{% endif %}>
+                  {{ c.name }}
+                </option>
+                {% endfor %}
+              </select>
+
+              <button class="btn btn-outline-primary w-100">
+                حفظ التعديل
+              </button>
+            </form>
+
+            <form method="post" class="mt-2"
+                  action="{{ url_for('delete_factory', factory_id=f.id) }}"
+                  onsubmit="return confirm('حذف الشاحن؟');">
+              <button class="btn btn-outline-danger w-100">حذف</button>
+            </form>
           </article>
-          {% else %}<div class="portexa-data-card text-center text-muted">لا توجد معامل.</div>{% endfor %}
+          {% else %}
+          <div class="portexa-data-card text-center text-muted">
+            لا يوجد شاحنون مسجلون.
+          </div>
+          {% endfor %}
         </div>
+
         <div class="table-responsive portexa-desktop-only">
           <table class="table align-middle">
             <thead class="table-light">
-              <tr><th>#</th><th>الاسم</th><th class="text-end">إجراءات</th></tr>
+              <tr>
+                <th>#</th>
+                <th>الشاحن والبلد</th>
+                <th class="text-end">إجراءات</th>
+              </tr>
             </thead>
             <tbody>
               {% for f in factories %}
               <tr>
-                <td class="fw-bold">{{ f.id }}</td>
+                <td>{{ f.id }}</td>
                 <td>
-                  <form method="post" action="{{ url_for('update_factory', factory_id=f.id) }}" class="d-flex gap-2">
-                    <input name="name" class="form-control" value="{{ f.name }}">
-                    <button class="btn btn-outline-primary">تعديل</button>
+                  <form id="editFactory{{ f.id }}" method="post"
+                        action="{{ url_for('update_factory', factory_id=f.id) }}"
+                        class="d-flex gap-2">
+                    <input name="name" class="form-control"
+                           value="{{ f.name }}" required>
+
+                    <select name="country_id" class="form-select" required>
+                      <option value="">اختر البلد</option>
+                      {% for c in countries %}
+                      <option value="{{ c.id }}"
+                        {% if f.country_id == c.id %}selected{% endif %}>
+                        {{ c.name }}
+                      </option>
+                      {% endfor %}
+                    </select>
                   </form>
                 </td>
                 <td class="text-end">
-                  <form method="post" action="{{ url_for('delete_factory', factory_id=f.id) }}"
-                        onsubmit="return confirm('حذف المعمل؟');">
-                    <button class="btn btn-outline-danger">حذف</button>
+                  <button type="submit" form="editFactory{{ f.id }}"
+                          class="btn btn-outline-primary btn-sm">
+                    تعديل
+                  </button>
+
+                  <form method="post" class="d-inline"
+                        action="{{ url_for('delete_factory', factory_id=f.id) }}"
+                        onsubmit="return confirm('حذف الشاحن؟');">
+                    <button class="btn btn-outline-danger btn-sm">
+                      حذف
+                    </button>
                   </form>
                 </td>
               </tr>
+              {% else %}
+              <tr>
+                <td colspan="3" class="text-center text-muted py-4">
+                  لا يوجد شاحنون مسجلون.
+                </td>
+              </tr>
               {% endfor %}
-              {% if factories|length == 0 %}
-              <tr><td colspan="3" class="text-center text-muted py-4">لا توجد معامل.</td></tr>
-              {% endif %}
             </tbody>
           </table>
         </div>
