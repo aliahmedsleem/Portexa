@@ -18,11 +18,12 @@ input[readonly]{background:#dfe5ee;color:#38475e}.help{font-size:.78rem;color:#b
 button{margin-top:23px;width:100%;min-height:52px;border:0;border-radius:12px;background:#d6b66e;color:#12243b;font:inherit;font-weight:800;cursor:pointer}
 .errors{background:#603735;border:1px solid #f6a7a0;border-radius:10px;padding:12px 16px;margin-bottom:20px}
 .note{font-size:.82rem;color:#bdc9d9;margin-top:16px}
-@media(max-width:600px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
-</style>  <!-- PORTEXA PWA -->
-  <link rel="manifest" href="/static/manifest.webmanifest">
-  <meta name="theme-color" content="#0C1C34">
-  <link rel="apple-touch-icon" href="/static/icons/icon-light-192.png">
+@media(max-width:600px){main{margin:18px auto 36px}header{margin-bottom:18px}.grid{grid-template-columns:1fr;gap:15px}.wide{grid-column:auto}.panel{padding:20px 16px}h1{line-height:1.5}}
+</style>
+<!-- PORTEXA PWA -->
+<link rel="manifest" href="/static/manifest.webmanifest">
+<meta name="theme-color" content="#0C1C34">
+<link rel="apple-touch-icon" href="/static/icons/icon-light-192.png">
 </head><body><main>
 <header><a class="brand" href="{{ url_for('onboarding.landing') }}">PORTEXA</a><a href="{{ url_for('onboarding.landing') }}">العودة للرئيسية</a></header>
 <section class="panel"><h1>استكمال بيانات {{ role_label }}</h1>
@@ -37,8 +38,6 @@ button{margin-top:23px;width:100%;min-height:52px;border:0;border-radius:12px;ba
 <div class="field"><label for="governorate">المحافظة *</label><select id="governorate" name="governorate" required><option value="">اختر المحافظة</option>{% for gov in governorates %}<option value="{{ gov }}" {% if values.get('governorate') == gov %}selected{% endif %}>{{ gov }}</option>{% endfor %}</select></div>
 <div class="field wide"><label for="company_name">اسم الشركة أو المكتب *</label><input id="company_name" name="company_name" value="{{ values.get('company_name','') }}" minlength="3" maxlength="200" required placeholder="الاسم الرسمي للشركة أو المكتب"></div>
 <div class="field wide"><label for="business_name">الاسم التجاري / اسم نشاط {{ role_label }} *</label><input id="business_name" name="business_name" value="{{ values.get('business_name','') }}" minlength="3" maxlength="150" required placeholder="اسم النشاط أو الخدمة التي تقدمها"></div>
-<div class="field"><label for="city">المدينة أو منطقة العمل *</label><input id="city" name="city" value="{{ values.get('city','') }}" minlength="3" maxlength="100" required placeholder="المنطقة"></div>
-<div class="field wide"><label for="address">عنوان مقر العمل *</label><input id="address" name="address" value="{{ values.get('address','') }}" minlength="3" maxlength="300" required placeholder="الشارع، المحلة، أقرب نقطة دالة"></div>
 </div>
 <button type="submit">إنشاء حسابي وتفعيل التجربة المجانية</button>
 <p class="note">التجربة المجانية مدتها 3 أيام. لا تُطلب منك بيانات دفع.</p>
