@@ -1493,9 +1493,8 @@ def shipments_edit(shipment_id):
 
         shipment.containers_count = int(request.form.get("containers_count") or 0)
 
-        if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
-            # Shipping dates remain managed by the carrier, not by merchant forms.
-            shipment.shipping_cost = to_float(request.form.get("shipping_cost"))
+        # Merchant controls the manually entered shipping amount.
+        shipment.shipping_cost = to_float(request.form.get("shipping_cost"))
 
         shipment.other_details = request.form.get("other_details") or None
         if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
