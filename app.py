@@ -605,7 +605,7 @@ def shipment_report_value(shipment, field_key):
     if field_key == "arrival_date":
         return shipment.arrival_date.strftime("%Y-%m-%d") if shipment.arrival_date else "-"
     if field_key == "shipping_mode":
-        return "بري" if shipment.shipping_mode == "BRI" else "بحري"
+        return shipping_mode_label(shipment.shipping_mode)
     if field_key == "status":
         return status_badge(shipment.status)[0]
     return "-"
@@ -1306,7 +1306,7 @@ def shipment_details(shipment_id):
     s = owner_filter(Shipment.query).filter(Shipment.id == shipment_id).first_or_404()
 
     status_txt, _ = status_badge(s.status)
-    mode = "بري" if s.shipping_mode == "BRI" else "بحري"
+    mode = shipping_mode_label(s.shipping_mode)
     cargo = "حاوية" if s.cargo_type == "CONTAINER" else "سيارة"
 
     def d(dt):
@@ -1360,6 +1360,16 @@ def shipments_new():
     carriers = User.query.filter(User.id.in_(favorite_carrier_ids), User.is_carrier == True, User.is_active == True).order_by(User.company_name.asc(), User.username.asc()).all() if favorite_carrier_ids else []
 
     if request.method == "POST":
+        shipping_mode = (request.form.get("shipping_mode") or "BRI").strip()
+        if shipping_mode not in ("BRI", "BAHRI", "MULTIMODAL"):
+            flash("نوع الشحن غير صالح.", "danger")
+            return render_template(
+                "shipment_form.html",
+                factories=factories, countries=countries,
+                clearers=clearers, carriers=carriers,
+                shipment=None
+            )
+
         factory_id = request.form.get("factory_id")
         if not factory_id or not str(factory_id).isdigit():
             flash("يرجى اختيار الشاحن.", "danger")
@@ -1396,7 +1406,7 @@ def shipments_new():
             bol_no=request.form.get("bol_no") or None,
             msc_tracking=None,
 
-            shipping_mode=request.form.get("shipping_mode") or "BRI",
+            shipping_mode=shipping_mode,
             cargo_type=request.form.get("cargo_type") or "CONTAINER",
 
             containers_count=int(request.form.get("containers_count") or 0),
@@ -1454,6 +1464,16 @@ def shipments_edit(shipment_id):
     carriers = User.query.filter(User.id.in_(favorite_carrier_ids), User.is_carrier == True, User.is_active == True).order_by(User.company_name.asc(), User.username.asc()).all() if favorite_carrier_ids else []
 
     if request.method == "POST":
+        shipping_mode = (request.form.get("shipping_mode") or "BRI").strip()
+        if shipping_mode not in ("BRI", "BAHRI", "MULTIMODAL"):
+            flash("نوع الشحن غير صالح.", "danger")
+            return render_template(
+                "shipment_form.html",
+                factories=factories, countries=countries,
+                clearers=clearers, carriers=carriers,
+                shipment=shipment
+            )
+
         factory_id = request.form.get("factory_id")
         if not factory_id or not str(factory_id).isdigit():
             flash("يرجى اختيار الشاحن.", "danger")
@@ -1490,7 +1510,7 @@ def shipments_edit(shipment_id):
         if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
             shipment.bol_no = request.form.get("bol_no") or None
 
-        shipment.shipping_mode = request.form.get("shipping_mode") or "BRI"
+        shipment.shipping_mode = shipping_mode
         shipment.cargo_type = request.form.get("cargo_type") or "CONTAINER"
 
         shipment.containers_count = int(request.form.get("containers_count") or 0)
@@ -1541,6 +1561,14 @@ def shipments_delete(shipment_id):
     db.session.commit()
     flash("تم حذف الشحنة.", "success")
     return redirect(url_for("shipments_list"))
+
+
+def shipping_mode_label(value):
+    return {
+        "BRI": "بري",
+        "BAHRI": "بحري",
+        "MULTIMODAL": "متعدد الوسائط",
+    }.get(value, value or "غير محدد")
 
 
 # -------------------- Manage Factories / Countries --------------------
@@ -1797,7 +1825,7 @@ def apply_report_filters(form):
         q = q.filter(Shipment.invoice_amount <= inv_max)
 
     shipping_mode = (form.get("shipping_mode") or "").strip()
-    if shipping_mode in ("BRI", "BAHRI"):
+    if shipping_mode in ("BRI", "BAHRI", "MULTIMODAL"):
         q = q.filter(Shipment.shipping_mode == shipping_mode)
 
     cargo_type = (form.get("cargo_type") or "").strip()

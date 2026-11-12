@@ -17,16 +17,87 @@
   <div class="card-body">
     <form method="post" id="shipmentForm">
       <div class="row g-3">
-        <div class="col-12"><h6 class="section-heading">بيانات الطلبية والفاتورة</h6></div>
-        <div class="col-md-4"><label class="form-label">الشاحن (المعمل)</label><select name="factory_id" id="factorySelect" class="form-select" required><option value="">اختر الشاحن</option>{% for f in factories %}<option value="{{ f.id }}" data-country="{{ f.country.name if f.country else '' }}" {% if shipment and shipment.factory_id==f.id %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select><div class="form-text">يتم تحديد بلد الشحنة تلقائياً حسب الشاحن. <a href="{{ url_for('manage_factories') }}">إدارة الشاحن والبلد</a></div></div>
-        <div class="col-md-4"><label class="form-label">البلد المرتبط بالشاحن</label><input id="factoryCountry" class="form-control" readonly aria-label="بلد الشاحن" value="{{ shipment.country.name if shipment and shipment.country else '' }}"></div>
-        <div class="col-md-3"><label class="form-label">رقم الفاتورة</label><input name="invoice_no" class="form-control" value="{{ shipment.invoice_no if shipment else '' }}"></div>
-        <div class="col-md-3"><label class="form-label">تاريخ الفاتورة</label><input type="date" name="invoice_date" class="form-control" value="{{ shipment.invoice_date.strftime('%Y-%m-%d') if shipment and shipment.invoice_date else '' }}"></div>
-        <div class="col-md-3"><label class="form-label">مبلغ الفاتورة</label><input name="invoice_amount" class="form-control" value="{{ shipment.invoice_amount if shipment and shipment.invoice_amount is not none else '' }}"></div>
-        <div class="col-md-3"><label class="form-label">العملة</label><select name="invoice_currency" class="form-select"><option value="USD" {% if shipment and shipment.invoice_currency=='USD' %}selected{% endif %}>دولار</option><option value="EUR" {% if shipment and shipment.invoice_currency=='EUR' %}selected{% endif %}>يورو</option></select></div>
-        <div class="col-md-3"><label class="form-label">نوع الشحن</label><select name="shipping_mode" class="form-select"><option value="BRI" {% if shipment and shipment.shipping_mode=='BRI' %}selected{% endif %}>بري</option><option value="BAHRI" {% if shipment and shipment.shipping_mode=='BAHRI' %}selected{% endif %}>بحري</option></select></div>
-        <div class="col-md-3"><label class="form-label">نوع الطلبية</label><select name="cargo_type" class="form-select"><option value="CONTAINER" {% if shipment and shipment.cargo_type=='CONTAINER' %}selected{% endif %}>حاوية</option><option value="CAR" {% if shipment and shipment.cargo_type=='CAR' %}selected{% endif %}>سيارة</option></select></div>
-        <div class="col-md-3"><label class="form-label">عدد الحاويات</label><input name="containers_count" class="form-control" value="{{ shipment.containers_count if shipment else 0 }}"></div>
+        <div class="col-12">
+          <h6 class="section-heading mb-0">بيانات الطلبية والفاتورة</h6>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <label class="form-label" for="factorySelect">الشاحن (المعمل)</label>
+          <select name="factory_id" id="factorySelect" class="form-select" required>
+            <option value="">اختر الشاحن</option>
+            {% for f in factories %}
+            <option value="{{ f.id }}"
+                    data-country="{{ f.country.name if f.country else '' }}"
+                    {% if shipment and shipment.factory_id == f.id %}selected{% endif %}>
+              {{ f.name }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">
+            <a href="{{ url_for('manage_factories') }}">إدارة الشاحنين والبلدان</a>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <label class="form-label" for="factoryCountry">البلد المرتبط بالشاحن</label>
+          <input id="factoryCountry"
+                 class="form-control"
+                 readonly
+                 aria-label="بلد الشاحن"
+                 value="{{ shipment.country.name if shipment and shipment.country else '' }}">
+          <div class="form-text">يظهر البلد تلقائياً عند اختيار الشاحن.</div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label">رقم الفاتورة</label>
+          <input name="invoice_no" class="form-control"
+                 value="{{ shipment.invoice_no if shipment else '' }}">
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label">تاريخ الفاتورة</label>
+          <input type="date" name="invoice_date" class="form-control"
+                 value="{{ shipment.invoice_date.strftime('%Y-%m-%d') if shipment and shipment.invoice_date else '' }}">
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label">مبلغ الفاتورة</label>
+          <input name="invoice_amount" class="form-control"
+                 value="{{ shipment.invoice_amount if shipment and shipment.invoice_amount is not none else '' }}">
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label">العملة</label>
+          <select name="invoice_currency" class="form-select">
+            <option value="USD" {% if shipment and shipment.invoice_currency == 'USD' %}selected{% endif %}>دولار</option>
+            <option value="EUR" {% if shipment and shipment.invoice_currency == 'EUR' %}selected{% endif %}>يورو</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4">
+          <label class="form-label">نوع الشحن</label>
+          <select name="shipping_mode" class="form-select">
+            <option value="BRI" {% if not shipment or shipment.shipping_mode == 'BRI' %}selected{% endif %}>بري</option>
+            <option value="BAHRI" {% if shipment and shipment.shipping_mode == 'BAHRI' %}selected{% endif %}>بحري</option>
+            <option value="MULTIMODAL" {% if shipment and shipment.shipping_mode == 'MULTIMODAL' %}selected{% endif %}>متعدد الوسائط</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-4">
+          <label class="form-label">وسيلة الشحن</label>
+          <select name="cargo_type" class="form-select">
+            <option value="CONTAINER" {% if not shipment or shipment.cargo_type == 'CONTAINER' %}selected{% endif %}>حاوية</option>
+            <option value="CAR" {% if shipment and shipment.cargo_type == 'CAR' %}selected{% endif %}>سيارة</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-12 col-xl-4">
+          <label class="form-label">العدد</label>
+          <input name="containers_count"
+                 type="number" min="0" step="1"
+                 class="form-control"
+                 value="{{ shipment.containers_count if shipment else 0 }}">
+        </div>
 
         <div class="col-12"><h6 class="section-heading">بيانات الشحن</h6></div>
         <div class="col-md-4"><label class="form-label">شركة النقل</label><select name="carrier_id" id="carrierSelect" class="form-select"><option value="">بدون شركة نقل</option>{% for c in carriers %}<option value="{{ c.id }}" {% if shipment and shipment.carrier_id==c.id %}selected{% endif %}>{{ c.company_name or c.username }}</option>{% endfor %}</select><div class="form-text">لا تظهر هنا إلا شركات النقل الموجودة في مفضلتك. <a href="{{ url_for('service_carriers') }}">ابحث وأضف شركة نقل للمفضلة</a>.</div></div>

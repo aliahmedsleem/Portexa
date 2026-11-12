@@ -34,6 +34,7 @@
             <option value="">الكل</option>
             <option value="BRI" {% if form_data.get('shipping_mode','') == 'BRI' %}selected{% endif %}>بري</option>
             <option value="BAHRI" {% if form_data.get('shipping_mode','') == 'BAHRI' %}selected{% endif %}>بحري</option>
+            <option value="MULTIMODAL" {% if form_data.get('shipping_mode','') == 'MULTIMODAL' %}selected{% endif %}>متعدد الوسائط</option>
           </select>
         </div>
 
