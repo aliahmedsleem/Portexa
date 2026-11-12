@@ -1544,65 +1544,96 @@ def shipments_delete(shipment_id):
 
 
 # -------------------- Manage Factories / Countries --------------------
+def get_or_create_shipper_country(name):
+    name = " ".join((name or "").strip().split())
+    if not name:
+        return None
+
+    country = owner_filter(Country.query).filter(
+        db.func.lower(Country.name) == name.lower()
+    ).first()
+
+    if country:
+        return country
+
+    country = Country(name=name, owner_id=current_owner_id())
+    db.session.add(country)
+    db.session.flush()
+    return country
+
+
 @app.route("/manage/factories", methods=["GET", "POST"])
 @login_required
 def manage_factories():
     if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        if not name:
-            flash("اسم المعمل مطلوب.", "danger")
+        name = " ".join((request.form.get("name") or "").strip().split())
+        country_name = " ".join((request.form.get("country_name") or "").strip().split())
+
+        if not name or not country_name:
+            flash("اسم الشاحن والبلد مطلوبان.", "danger")
             return redirect(url_for("manage_factories"))
 
-        existing_factory = owner_filter(Factory.query).filter(
+        existing = owner_filter(Factory.query).filter(
             db.func.lower(Factory.name) == name.lower()
         ).first()
-        if existing_factory:
-            flash("هذا المعمل موجود مسبقاً ضمن حسابك.", "warning")
+
+        if existing:
+            flash("هذا الشاحن موجود مسبقاً ضمن حسابك.", "warning")
             return redirect(url_for("manage_factories"))
 
-        country_id = request.form.get("country_id", type=int)
-        country = owner_filter(Country.query).filter(Country.id == country_id).first() if country_id else None
-        if not country:
-            flash("اختر بلداً صحيحاً للشاحن.", "danger")
-            return redirect(url_for("manage_factories"))
+        country = get_or_create_shipper_country(country_name)
 
-        db.session.add(Factory(name=name, owner_id=current_owner_id(), country_id=country.id))
+        db.session.add(
+            Factory(
+                name=name,
+                owner_id=current_owner_id(),
+                country_id=country.id
+            )
+        )
         db.session.commit()
-        flash("تمت إضافة المعمل.", "success")
+
+        flash("تمت إضافة الشاحن والبلد بنجاح.", "success")
         return redirect(url_for("manage_factories"))
 
     factories = owner_filter(Factory.query).order_by(Factory.name.asc()).all()
     countries = owner_filter(Country.query).order_by(Country.name.asc()).all()
-    return render_template("manage_factories.html", factories=factories, countries=countries)
+    return render_template(
+        "manage_factories.html",
+        factories=factories,
+        countries=countries
+    )
 
 
 @app.post("/manage/factories/<int:factory_id>/update")
 @login_required
 def update_factory(factory_id):
-    factory = owner_filter(Factory.query).filter(Factory.id == factory_id).first_or_404()
-    name = (request.form.get("name") or "").strip()
+    factory = owner_filter(Factory.query).filter(
+        Factory.id == factory_id
+    ).first_or_404()
 
-    if not name:
-        flash("اسم المعمل مطلوب.", "danger")
+    name = " ".join((request.form.get("name") or "").strip().split())
+    country_name = " ".join((request.form.get("country_name") or "").strip().split())
+
+    if not name or not country_name:
+        flash("اسم الشاحن والبلد مطلوبان.", "danger")
         return redirect(url_for("manage_factories"))
 
-    duplicate_factory = owner_filter(Factory.query).filter(
+    duplicate = owner_filter(Factory.query).filter(
         Factory.id != factory.id,
         db.func.lower(Factory.name) == name.lower()
     ).first()
-    if duplicate_factory:
-        flash("هذا المعمل موجود مسبقاً ضمن حسابك.", "warning")
+
+    if duplicate:
+        flash("هذا الشاحن موجود مسبقاً ضمن حسابك.", "warning")
         return redirect(url_for("manage_factories"))
 
-    country_id = request.form.get("country_id", type=int)
-    country = owner_filter(Country.query).filter(Country.id == country_id).first() if country_id else None
-    if not country:
-        flash("اختر بلداً صحيحاً للشاحن.", "danger")
-        return redirect(url_for("manage_factories"))
+    country = get_or_create_shipper_country(country_name)
+
     factory.name = name
     factory.country_id = country.id
+
     db.session.commit()
-    flash("تم تعديل المعمل بنجاح.", "success")
+    flash("تم تحديث الشاحن والبلد بنجاح.", "success")
     return redirect(url_for("manage_factories"))
 
 
