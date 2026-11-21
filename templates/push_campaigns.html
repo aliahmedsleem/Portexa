@@ -1,7 +1,7 @@
 {% extends 'admin_base.html' if admin else 'advertiser_base.html' %}
 {% block title %}حملات الإشعارات | PORTEXA{% endblock %}
 {% block content %}
-<style>.push-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.push-grid label{font-weight:650;display:block;margin-bottom:.3rem}.push-panel{border:1px solid var(--bs-border-color,#ddd);border-radius:16px;padding:1.25rem;margin-bottom:1.2rem;background:var(--bs-body-bg,#fff)}.push-table{overflow-x:auto}@media(max-width:680px){.push-grid{grid-template-columns:1fr}}</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='push-campaigns.css') }}">
 <h3 class="mb-3">إدارة حملات الإشعارات</h3>
 <div class="push-panel">
 <h5>إنشاء خطة جديدة</h5>
@@ -16,11 +16,42 @@
 <div><button class="btn btn-primary" type="submit">حفظ الخطة</button></div>
 </form>
 </div>
-<div class="push-panel"><h5>سجل الحملات</h5><div class="push-table"><table class="table table-hover align-middle"><thead><tr><th>الحملة</th><th>النوع</th><th>الفئة</th><th>الموعد UTC</th><th>الحالة</th><th>النتائج</th><th>الإجراء</th></tr></thead><tbody>
-{% for c in campaigns %}<tr><td><strong>{{ c.title }}</strong><div class="small text-muted">{{ c.body }}</div></td><td>{{ 'نظام' if c.kind=='SYSTEM' else 'إعلان' }}</td><td>{{ {'ALL':'الكل','MERCHANT':'التجار','CLEARER':'المخلصون','CARRIER':'شركات النقل'}.get(c.audience,c.audience) }}</td><td>{{ c.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ {'PENDING':'بانتظار الموافقة','APPROVED':'موافق عليها','REJECTED':'مرفوضة','SENDING':'قيد الإرسال','COMPLETED':'مكتملة','CANCELLED':'ملغاة'}.get(c.status,c.status) }}</td><td>{% if c.kind=="AD" and c.amount %}<div class="small">{{ c.amount }} {{ c.currency }}</div>{% endif %}{{ c.sent_count }} نجح / {{ c.failed_count }} فشل</td><td>
+<section class="push-panel" aria-labelledby="push-history">
+<h5 id="push-history">سجل الحملات</h5>
+{% set audiences = {'ALL':'الكل','MERCHANT':'التجار','CLEARER':'المخلصون','CARRIER':'شركات النقل'} %}
+{% set statuses = {'PENDING':'بانتظار الموافقة','APPROVED':'موافق عليها','REJECTED':'مرفوضة','SENDING':'قيد الإرسال','COMPLETED':'مكتملة','CANCELLED':'ملغاة'} %}
+<div class="push-history-grid">
+{% for c in campaigns %}
+<article class="push-card">
+  <h6>{{ c.title }}</h6>
+  <p class="text-muted">{{ c.body }}</p>
+  <dl class="push-card-details">
+    <div><dt>النوع</dt><dd>{{ 'نظام' if c.kind == 'SYSTEM' else 'إعلان' }}</dd></div>
+    <div><dt>الفئة</dt><dd>{{ audiences.get(c.audience, c.audience) }}</dd></div>
+    <div><dt>الموعد (UTC)</dt><dd><bdi>{{ c.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</bdi></dd></div>
+    <div><dt>الحالة</dt><dd>{{ statuses.get(c.status, c.status) }}</dd></div>
+    <div><dt>النتائج</dt><dd>{{ c.sent_count }} نجح / {{ c.failed_count }} فشل</dd></div>
+    {% if c.kind == 'AD' and c.amount %}
+    <div><dt>السعر</dt><dd><bdi>{{ c.amount }} {{ c.currency }}</bdi></dd></div>
+    {% endif %}
+  </dl>
 {% if admin and c.status=='PENDING' %}<form method="post" action="{{ url_for('push_campaigns.review',campaign_id=c.id) }}" class="d-flex gap-1 flex-wrap"><input type="hidden" name="_csrf" value="{{ csrf }}">{% if c.kind=='AD' %}<input type="number" name="amount" min="0.01" step="0.01" class="form-control form-control-sm" style="max-width:110px" placeholder="السعر" required><select name="currency" class="form-select form-select-sm" style="max-width:90px"><option>IQD</option><option>USD</option></select>{% endif %}<button class="btn btn-sm btn-success" name="action" value="approve">موافقة</button><button class="btn btn-sm btn-outline-danger" name="action" value="reject" formnovalidate>رفض</button><input class="form-control form-control-sm" name="reason" placeholder="سبب الرفض" style="max-width:170px"></form>{% endif %}
 {% if c.status in ['PENDING','APPROVED'] %}<form method="post" action="{{ url_for('push_campaigns.cancel',campaign_id=c.id) }}" class="mt-1"><input type="hidden" name="_csrf" value="{{ csrf }}"><button class="btn btn-sm btn-outline-secondary" type="submit">إلغاء</button></form>{% endif %}
-</td></tr>{% else %}<tr><td colspan="7" class="text-center text-muted">لا توجد حملات بعد</td></tr>{% endfor %}
-</tbody></table></div></div>
+{% if admin and c.status in deletable_statuses %}
+  <form class="push-delete" method="post" action="{{ url_for('push_campaigns.delete_campaign', campaign_id=c.id) }}">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
+    <label class="push-delete-confirm">
+      <input type="checkbox" name="confirm_delete" value="yes" class="form-check-input" required>
+      <span>أؤكد حذف الحملة وسجل إرسالها نهائيًا</span>
+    </label>
+    <button class="btn btn-sm btn-outline-danger" type="submit">حذف الحملة</button>
+  </form>
+{% endif %}
+</article>
+{% else %}
+<p class="mb-0 text-muted">لا توجد حملات بعد</p>
+{% endfor %}
+</div>
+</section>
 {% if admin %}<script>const k=document.getElementById('push-kind'),a=document.getElementById('push-advertiser');function sync(){a.hidden=k.value!=='AD'}k.addEventListener('change',sync);sync()</script>{% endif %}
 {% endblock %}

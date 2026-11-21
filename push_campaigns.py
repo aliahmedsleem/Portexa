@@ -7,6 +7,9 @@ from urllib.parse import urlparse
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for, Response
 from flask_login import current_user, login_required
 
+DELETABLE_STATUSES = frozenset({"COMPLETED", "CANCELLED", "REJECTED"})
+
+
 def register_push_campaigns(app, db, User, SystemNotification):
     bp = Blueprint("push_campaigns", __name__, url_prefix="/push")
     class Campaign(db.Model):
@@ -165,7 +168,14 @@ def register_push_campaigns(app, db, User, SystemNotification):
             flash("تم حفظ الخطة؛ الإعلانات تنتظر موافقة المدير.", "success")
             return redirect(url_for(".campaigns"))
         q = Campaign.query if is_admin() else Campaign.query.filter_by(advertiser_id=current_user.id)
-        return render_template("push_campaigns.html", campaigns=q.order_by(Campaign.id.desc()).limit(150).all(), advertisers=User.query.filter_by(is_advertiser=True).all() if is_admin() else [], admin=is_admin(), csrf=token())
+        return render_template(
+            "push_campaigns.html",
+            campaigns=q.order_by(Campaign.id.desc()).limit(150).all(),
+            advertisers=User.query.filter_by(is_advertiser=True).all() if is_admin() else [],
+            admin=is_admin(),
+            csrf=token(),
+            deletable_statuses=DELETABLE_STATUSES,
+        )
 
     @bp.post("/campaigns/<int:campaign_id>/review")
     @login_required
@@ -209,6 +219,35 @@ def register_push_campaigns(app, db, User, SystemNotification):
             abort(409)
         c.status = "CANCELLED"
         db.session.commit()
+        return redirect(url_for(".campaigns"))
+
+    @bp.post("/campaigns/<int:campaign_id>/delete")
+    @login_required
+    def delete_campaign(campaign_id):
+        if not is_admin():
+            abort(403)
+        verify()
+        if request.form.get("confirm_delete") != "yes":
+            abort(400)
+
+        eligible = Campaign.query.filter(
+            Campaign.id == campaign_id,
+            Campaign.status.in_(DELETABLE_STATUSES),
+        )
+        # Match and lock the campaign before touching its deliveries.
+        # A no-op UPDATE starts a write transaction on SQLite as well.
+        if not eligible.update({Campaign.status: Campaign.status}, synchronize_session=False):
+            db.session.rollback()
+            if db.session.get(Campaign, campaign_id) is None:
+                abort(404)
+            abort(409)
+
+        Delivery.query.filter_by(campaign_id=campaign_id).delete()
+        if not eligible.delete(synchronize_session=False):
+            db.session.rollback()
+            abort(409)
+        db.session.commit()
+        flash("تم حذف الحملة من السجل.", "success")
         return redirect(url_for(".campaigns"))
 
     def dispatch_due():
