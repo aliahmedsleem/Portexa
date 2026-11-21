@@ -321,7 +321,8 @@
       ["الحالة", "current_status"], ["ملاحظات", "operator_notes"]
     ];
     box.replaceChildren();
-    const records = Array.isArray(containers) && containers.length ? containers : (route ? [route] : []);
+    const hasContainers = Array.isArray(containers) && containers.length > 0;
+    const records = hasContainers ? containers : (route ? [route] : []);
     if(!records.length){
       const empty = document.createElement("div");
       empty.className = "col-12 text-muted small";
@@ -357,9 +358,9 @@
       section.append(grid);
       box.append(section);
     });
-    hint.textContent = containers && containers.length
-      ? "بيانات الحاويات من آخر تحديث محفوظ في PORTEXA"
-      : "آخر تحديث للمسار القديم: " + (route.updated_at || "غير متوفر");
+    hint.textContent = hasContainers
+      ? "بيانات الحاويات حسب آخر تحديث محفوظ في PORTEXA"
+      : "آخر تحديث للمسار: " + (route.updated_at || "غير متوفر");
   }
 
   function refreshTracking(){

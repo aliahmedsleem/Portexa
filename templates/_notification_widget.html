@@ -1,0 +1,38 @@
+<div class="px-notify-shell" dir="rtl" data-csrf="{{ px_notification_token() }}">
+  {% set px_unread = notification_count() %}
+  <button type="button" class="px-notify-bell" id="px-notify-bell" aria-label="فتح الإشعارات" aria-controls="px-notify-panel" aria-expanded="false">🔔 <span class="px-notify-count" id="px-notify-count" {% if not px_unread %}hidden{% endif %}>{{ px_unread }}</span></button>
+  <section class="px-notify-panel" id="px-notify-panel" aria-label="مركز الإشعارات" hidden>
+    <header class="px-notify-head">
+      <div><strong>الإشعارات</strong><small>آخر التحديثات والتنبيهات</small></div>
+      <button type="button" id="px-notify-close" aria-label="إغلاق الإشعارات">×</button>
+    </header>
+    <div class="px-notify-list">
+      {% for n in latest_notifications(100) %}
+      <article class="px-notify-item {{ 'px-unread' if not n.is_read else 'px-read' }}" data-notification-id="{{ n.id }}">
+        <button type="button" class="px-notify-entry" aria-expanded="false">
+          <span class="px-notify-entry-main"><strong>{{ n.title }}</strong><span class="px-notify-preview">{{ (n.body or '')|truncate(110) }}</span></span>
+          <span class="px-notify-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="px-notify-detail" hidden>
+          <p>{{ n.body or 'لا توجد تفاصيل إضافية.' }}</p>
+          {% if n.url and n.url.startswith('/') and not n.url.startswith('//') %}
+          <a class="px-notify-context" href="{{ n.url }}">الانتقال إلى الموضوع المرتبط</a>
+          {% endif %}
+        </div>
+      </article>
+      {% else %}<p class="px-notify-empty">ما عندك إشعارات حالياً.</p>{% endfor %}
+    </div>
+    <footer class="px-notify-footer">تظهر الإشعارات الجديدة بلون أزرق فاتح حتى تفتح تفاصيلها.</footer>
+  </section>
+</div>
+<div class="px-push-overlay" id="px-push-overlay" hidden>
+  <section class="px-push-dialog" role="dialog" aria-modal="true" aria-labelledby="px-push-title">
+    <div class="px-push-icon">🔔</div><h3 id="px-push-title">فعّل إشعارات PORTEXA</h3>
+    <p id="px-push-description">استلم تحديثات الشحنات والتنبيهات المهمة على هذا الجهاز. يمكنك تفعيل العروض الإعلانية بشكل منفصل.</p>
+    <label class="px-push-consent"><input type="checkbox" id="px-push-ads"> أوافق على استقبال الإشعارات الإعلانية</label>
+    <p id="px-push-message" role="status"></p>
+    <div class="px-push-actions"><button type="button" id="px-push-accept">تفعيل الإشعارات</button><button type="button" id="px-push-later">لاحقاً</button></div>
+  </section>
+</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='portexa-notifications-widget.css', v='2') }}">
+<script defer src="{{ url_for('static', filename='portexa-notifications-widget.js', v='3') }}"></script>

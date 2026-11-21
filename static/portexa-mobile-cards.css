@@ -1,0 +1,113 @@
+/* PORTEXA unified mobile cards — scoped, non-destructive layer */
+.portexa-mobile-only{display:none!important}
+.portexa-desktop-only{display:block}
+.portexa-card-list{display:grid;gap:14px;min-width:0}
+.portexa-data-card{min-width:0;background:#fff;border:1px solid #e1e7ef;border-radius:18px;padding:16px;box-shadow:0 6px 22px rgba(15,29,52,.07);color:#17243a}
+.portexa-data-card__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #e8edf4}
+.portexa-data-card__title{font-size:1rem;font-weight:900;min-width:0;overflow-wrap:anywhere}
+.portexa-data-card__fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.portexa-data-card__field{min-width:0;display:flex;flex-direction:column;gap:3px}
+.portexa-data-card__field dt{font-size:.76rem;color:#66758b;font-weight:700;margin:0}
+.portexa-data-card__field dd{font-size:.88rem;font-weight:800;margin:0;color:#1b2d47;overflow-wrap:anywhere;unicode-bidi:plaintext}
+.portexa-data-card__actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #e8edf4}
+.portexa-data-card__actions form{margin:0}
+.portexa-data-card__actions .btn{white-space:nowrap!important;min-height:40px}
+.portexa-mobile-summary{display:block;min-width:0}
+@media(max-width:767.98px){
+ .portexa-mobile-only{display:block!important}
+ .portexa-desktop-only{display:none!important}
+ .portexa-card-list{width:100%;max-width:100%}
+ .portexa-data-card__actions>.btn,.portexa-data-card__actions>form{flex:1 1 calc(50% - 8px)}
+ .portexa-data-card__actions form .btn{width:100%}
+ .portexa-data-card__field dd .badge{white-space:nowrap;max-width:100%}
+ .portexa-stats-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ .portexa-metric{display:flex!important;min-width:0!important;background:#fff!important;border:1px solid #e1e7ef!important;border-radius:16px!important;padding:14px!important;box-shadow:0 5px 18px rgba(15,29,52,.07)!important}
+ .portexa-metric-value{font-size:clamp(1.45rem,6vw,2rem)!important}
+ .portexa-metric-label{font-size:.8rem!important}
+ .portexa-metric-detail{font-size:.72rem!important}
+ .portexa-metric-top{gap:6px}
+ .portexa-metric-icon{width:34px;height:34px;flex-shrink:0}
+ .provider-body .stat-card{height:100%;background:#fff;border:1px solid #e1e7ef;box-shadow:0 5px 18px rgba(15,29,52,.07)}
+ .page-container,.app-content,.portexa-section{min-width:0;max-width:100%}
+ .portexa-data-card .form-control{min-width:0}
+}
+@media(max-width:380px){.portexa-stats-grid{grid-template-columns:1fr!important}.portexa-data-card__fields{grid-template-columns:1fr}}
+
+/* Shipment containers V2 — dedicated mobile layout */
+.portexa-shipment-list{display:none}
+@media(max-width:767.98px){
+ .portexa-shipment-list{display:flex!important;flex-direction:column;gap:14px;margin-bottom:20px;min-width:0;width:100%}
+ .portexa-shipment-list__summary{display:flex;align-items:center;justify-content:space-between;color:#64748b;font-size:.86rem;font-weight:700;padding:0 4px}
+ .portexa-shipment-list__summary strong{background:#e9edf3;color:#263b57;border-radius:999px;min-width:32px;text-align:center;padding:3px 10px}
+ .portexa-shipment-container{min-width:0;width:100%;overflow:hidden;border:1px solid #e0e6ee;border-radius:18px;background:#fff;box-shadow:0 8px 25px rgba(14,30,54,.07)}
+ .portexa-shipment-container__header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:17px 17px 14px;background:linear-gradient(120deg,#f9fbfd,#f8f5ee);border-bottom:1px solid #e8edf3}
+ .portexa-shipment-container__identity{min-width:0;flex:1}
+ .portexa-shipment-container__eyebrow{display:block;font-size:.64rem;letter-spacing:.07em;font-weight:800;color:#aa813c;direction:ltr;text-align:right}
+ .portexa-shipment-container__identity h2{font-size:1.16rem;font-weight:900;line-height:1.5;margin:3px 0;color:#172a46}
+ .portexa-shipment-container__identity p{font-size:.82rem;color:#63748c;margin:0;overflow-wrap:anywhere}
+ .portexa-shipment-container__status{flex:0 0 auto;max-width:43%;font-size:.72rem;border-radius:9px;align-self:center}
+ .portexa-shipment-container__body{padding:16px}
+ .portexa-shipment-container__arrival{display:flex;align-items:center;gap:12px;background:#f5f7fa;border:1px solid #e9edf2;border-radius:13px;padding:12px 14px;margin-bottom:16px}
+ .portexa-shipment-container__arrival-icon{display:grid;place-items:center;flex:0 0 36px;height:36px;border-radius:10px;background:#f1e5ce;color:#946b2a;font-size:1.25rem}
+ .portexa-shipment-container__arrival>div{min-width:0;display:flex;flex-direction:column;gap:2px}
+ .portexa-shipment-container__field-label,.portexa-shipment-container__field dt{font-size:.74rem;font-weight:700;color:#718097}
+ .portexa-shipment-container__arrival strong{font-size:.97rem;color:#23364e;text-align:right}
+ .portexa-shipment-container__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 12px;margin:0}
+ .portexa-shipment-container__field{min-width:0;border-bottom:1px solid #f0f2f6;padding-bottom:10px}
+ .portexa-shipment-container__field--wide{grid-column:1/-1;border-bottom:0;padding-bottom:0}
+ .portexa-shipment-container__field dt{margin:0 0 4px}
+ .portexa-shipment-container__field dd{margin:0;font-size:.86rem;line-height:1.6;font-weight:800;color:#253750;overflow-wrap:anywhere;word-break:normal}
+ .portexa-shipment-container__footer{padding:14px 16px;background:#fafbfc;border-top:1px solid #e9edf3}
+ .portexa-shipment-container__main-actions{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:9px}
+ .portexa-shipment-container__main-actions .btn{min-width:0;min-height:44px;padding:8px;font-size:.83rem;border-radius:10px}
+ .portexa-shipment-container__secondary-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+ .portexa-shipment-container__secondary-actions .btn{flex:1 1 auto}
+ .portexa-shipment-container__danger{display:flex;justify-content:flex-end;margin-top:8px}
+ .portexa-shipment-container__danger form{margin:0}
+ .portexa-shipment-container__danger .btn{font-size:.75rem;text-decoration:none;padding:5px 2px;min-height:30px}
+}
+@media(max-width:350px){.portexa-shipment-container__main-actions{grid-template-columns:1fr}.portexa-shipment-container__header{flex-wrap:wrap}.portexa-shipment-container__status{max-width:100%}}
+
+/* Shipment list V3: unambiguous separation and containment */
+@media(max-width:767.98px){
+ .portexa-shipment-list{gap:0!important;display:flex!important;flex-direction:column!important;align-items:stretch!important}
+ .portexa-shipment-container{display:block!important;position:relative!important;isolation:isolate;clear:both;width:100%!important;max-width:100%!important;margin:0 0 26px!important;border:2px solid #cbd5e1!important;border-top:5px solid #b88935!important;border-radius:18px!important;box-shadow:0 9px 24px rgba(15,29,52,.13)!important;overflow:hidden!important;background:#fff!important}
+ .portexa-shipment-container:not(:last-of-type)::after{content:none}
+ .portexa-shipment-container__header,.portexa-shipment-container__body,.portexa-shipment-container__footer{display:block;position:relative;clear:both;width:100%;box-sizing:border-box}
+ .portexa-shipment-container__header{display:flex!important}
+ .portexa-shipment-container__footer{background:#f1f4f8!important;border-top:2px solid #dbe2eb!important}
+ .portexa-shipment-container__main-actions{display:grid!important}
+ .portexa-shipment-container__danger{border-top:1px dashed #d2dae5;padding-top:8px}
+ .portexa-shipment-container__field{overflow:hidden}
+ .portexa-shipment-container__field dd{word-break:normal!important;overflow-wrap:anywhere!important}
+ .portexa-shipment-container__main-actions .btn{white-space:normal!important}
+ .portexa-shipment-list__summary{margin-bottom:14px}
+ .portexa-shipment-container + .portexa-shipment-container{margin-top:6px!important}
+}
+
+/* Shared role portals: navigation and distinct service request boundaries */
+@media(max-width:991.98px){
+ .provider-body .service-order-card{border:2px solid #cbd5e1!important;border-top:4px solid #b88935!important;border-radius:17px!important;overflow:hidden!important;box-shadow:0 7px 20px rgba(15,29,52,.11)!important}
+ .provider-body .service-order-card .card-body{padding:16px!important}
+ .provider-body .service-order-card form{margin-top:16px!important;padding-top:16px!important;border-top:2px solid #e2e8f0!important}
+ .provider-body .service-order-card form .btn{min-height:44px}
+ .provider-body .service-order-card .row>div{min-width:0;overflow-wrap:anywhere}
+ .provider-body .service-order-card h5{overflow-wrap:anywhere}
+ .admin-body .responsive-table-wrap,.admin-body .table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .advertiser-body .ad-admin-card{overflow:hidden;border:1px solid #dce4ee!important;border-radius:16px}
+ .advertiser-body .ad-admin-card .card-body{min-width:0;overflow-wrap:anywhere}
+ .mobile-sidebar .sidebar-nav .sidebar-link.active{background:rgba(184,137,53,.13)!important;color:#ad7b26!important;font-weight:900!important;border-radius:10px}
+ .mobile-sidebar .sidebar-nav .sidebar-link{min-height:43px;display:flex;align-items:center}
+}
+
+/* Notifications v5 */
+.portexa-notification-filters{display:flex;flex-wrap:wrap;gap:7px}
+.portexa-notification-items{display:grid;gap:12px}
+.portexa-notification-item{display:block;text-decoration:none;color:#1c2d44;background:#fff;border:1px solid #dce3ed;border-right:4px solid #cbd5e1;border-radius:15px;padding:15px 17px;box-shadow:0 4px 14px rgba(20,35,55,.05);overflow-wrap:anywhere}
+.portexa-notification-item:hover{color:#1c2d44;border-color:#b88935}
+.portexa-notification-item.is-unread{border-right-color:#b88935;background:#fffcf5}
+.portexa-notification-item__top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:9px}
+.portexa-notification-item strong{display:block;font-size:.97rem}
+.portexa-notification-item p{color:#63748c;font-size:.85rem;margin:6px 0}
+.portexa-notification-item__state{font-size:.72rem;font-weight:700;color:#92702e}
+@media(max-width:767.98px){.portexa-notification-item{padding:14px}.portexa-notification-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px}.portexa-notification-filters .btn{white-space:nowrap;flex-shrink:0}}

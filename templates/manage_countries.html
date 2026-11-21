@@ -20,7 +20,22 @@
       <div class="card-body">
         <h5 class="mb-2">عرض البلدان</h5>
 
-        <div class="table-responsive">
+        <div class="portexa-mobile-only portexa-card-list">
+          {% for c in countries %}
+          <article class="portexa-data-card">
+            <div class="portexa-data-card__head"><strong class="portexa-data-card__title">بلد #{{ c.id }}</strong></div>
+            <form method="post" action="{{ url_for('update_country', country_id=c.id) }}">
+              <label class="form-label" for="mobile-c-{{ c.id }}">اسم بلد</label>
+              <input id="mobile-c-{{ c.id }}" name="name" class="form-control" value="{{ c.name }}" required>
+              <div class="portexa-data-card__actions"><button type="submit" class="btn btn-outline-primary w-100">حفظ التعديل</button></div>
+            </form>
+            <div class="portexa-data-card__actions">
+              <form method="post" action="{{ url_for('delete_country', country_id=c.id) }}" onsubmit="return confirm('حذف بلد؟');"><button class="btn btn-outline-danger" type="submit">حذف</button></form>
+            </div>
+          </article>
+          {% else %}<div class="portexa-data-card text-center text-muted">لا توجد بلدان.</div>{% endfor %}
+        </div>
+        <div class="table-responsive portexa-desktop-only">
           <table class="table align-middle">
             <thead class="table-light">
               <tr><th>#</th><th>الاسم</th><th class="text-end">إجراءات</th></tr>

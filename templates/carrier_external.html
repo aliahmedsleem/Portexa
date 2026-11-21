@@ -1,0 +1,116 @@
+{% extends "provider_base.html" %}
+{% block title %}الحجوزات الخارجية | PORTEXA{% endblock %}
+{% block content %}
+<style>
+.external-wrap{max-width:1300px;margin:auto}.external-nav{display:flex;flex-wrap:wrap;gap:.6rem;margin:1rem 0 1.5rem}.external-nav a{flex:0 1 auto}
+.external-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.external-field{min-width:0}
+.external-field label{display:block;font-weight:600;margin-bottom:.3rem}.external-field .form-control,.external-field .form-select{width:100%;min-width:0}
+.external-card{background:var(--bs-body-bg,#fff);border:1px solid var(--bs-border-color,#ddd);border-radius:14px;padding:1.2rem;margin-bottom:1rem;overflow-wrap:anywhere}
+.external-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem}
+.external-metric{font-size:1.3rem;font-weight:700}.external-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+@media(max-width:700px){.external-grid{grid-template-columns:1fr}.external-card{padding:.9rem}.external-nav a{flex:1 1 44%;text-align:center}.external-actions .btn{flex:1 1 100%}}
+</style>
+<div class="external-wrap">
+<h3 class="mb-2">إدارة الحجوزات الخارجية</h3>
+<p class="text-muted">حجوزات زبائن شركتك، الحسابات المالية والتتبع.</p>
+<nav class="external-nav" aria-label="إدارة الحجوزات">
+<a class="btn btn-outline-primary" href="{{ url_for('carrier_bookings.index') }}">الحجوزات</a>
+<a class="btn btn-outline-primary" href="{{ url_for('carrier_bookings.new') }}">حجز جديد</a>
+<a class="btn btn-outline-primary" href="{{ url_for('carrier_bookings.customers') }}">الزبائن</a>
+<a class="btn btn-outline-primary" href="{{ url_for('carrier_bookings.providers') }}">مقدمو الخدمة</a>
+</nav>
+{% if view == 'customers' or view == 'providers' %}
+{% set is_customer = view == 'customers' %}
+<section class="external-card">
+<h5>{{ 'إضافة زبون دائم' if is_customer else 'إضافة مقدم خدمة' }}</h5>
+<form method="post" class="external-grid">
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="external-field"><label for="name">اسم الشركة *</label><input class="form-control" id="name" name="name" maxlength="220" required></div>
+{% if is_customer %}
+<div class="external-field"><label for="contact">مسؤول التواصل</label><input class="form-control" id="contact" name="contact"></div>
+{% endif %}
+<div class="external-field"><label for="phone">الهاتف</label><input class="form-control" id="phone" name="phone"></div>
+{% if is_customer %}
+<div class="external-field"><label for="email">البريد الإلكتروني</label><input class="form-control" id="email" name="email" type="email"></div>
+<div class="external-field"><label for="address">العنوان</label><input class="form-control" id="address" name="address"></div>
+{% else %}
+<div class="external-field"><label for="notes">ملاحظات</label><input class="form-control" id="notes" name="notes"></div>
+{% endif %}
+<div class="external-field d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">حفظ الشركة</button></div>
+</form>
+</section>
+<div class="external-list">
+{% for item in (customers if is_customer else providers) %}
+<article class="external-card"><strong>{{ item.name }}</strong><div class="text-muted">{{ item.phone or 'لا يوجد هاتف' }}</div>{% if is_customer %}<small>{{ item.contact or '' }}</small>{% endif %}</article>
+{% else %}<p class="text-muted">لا توجد شركات محفوظة بعد.</p>{% endfor %}
+</div>
+{% elif view == 'new' %}
+<section class="external-card">
+<h5>بيانات الحجز</h5>
+{% if not customers or not providers %}<div class="alert alert-warning">أضف زبوناً ومقدم خدمة أولاً.</div>{% endif %}
+<form method="post" class="external-grid">
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="external-field"><label for="customer_id">الزبون *</label><select class="form-select" id="customer_id" name="customer_id" required><option value="">اختر الزبون</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+<div class="external-field"><label for="provider_id">مقدم الخدمة *</label><select class="form-select" id="provider_id" name="provider_id" required><option value="">اختر مقدم الخدمة</option>{% for p in providers %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>
+{% for key,label,type in [('bl_number','رقم بوليصة الشحن B/L','text'),('bl_date','تاريخ البوليصة','date'),('origin_port','ميناء الانطلاق','text'),('destination_port','ميناء الوجهة','text'),('shipping_line','الخط الملاحي / رمز التتبع','text'),('containers','عدد الحاويات','number'),('departure_date','تاريخ المغادرة','date'),('arrival_date','تاريخ الوصول المتوقع','date'),('due_date','تاريخ استحقاق الدفع','date'),('sale_amount','المبلغ المطلوب من الزبون','number'),('provider_cost','تكلفة مقدم الخدمة','number')] %}
+<div class="external-field"><label for="{{ key }}">{{ label }}{% if key in ['bl_number','bl_date','origin_port','destination_port','shipping_line','containers','due_date','sale_amount','provider_cost'] %} *{% endif %}</label><input class="form-control" id="{{ key }}" name="{{ key }}" type="{{ type }}" {% if type == 'number' %}min="{{ 1 if key == 'containers' else 0 }}" step="{{ 1 if key == 'containers' else '0.01' }}"{% endif %} {% if key in ['bl_number','bl_date','origin_port','destination_port','shipping_line','containers','due_date','sale_amount','provider_cost'] %}required{% endif %}></div>
+{% endfor %}
+<div class="external-field"><label for="currency">العملة</label><select class="form-select" id="currency" name="currency"><option>USD</option><option>IQD</option></select></div>
+<div class="external-field"><label for="container_details">أرقام وأنواع الحاويات</label><textarea class="form-control" id="container_details" name="container_details" rows="2"></textarea></div>
+<div class="external-field"><label for="notes">ملاحظات</label><textarea class="form-control" id="notes" name="notes" rows="2"></textarea></div>
+<div class="external-field d-flex align-items-end"><button class="btn btn-primary w-100" type="submit" {% if not customers or not providers %}disabled{% endif %}>حفظ الحجز</button></div>
+</form></section>
+{% elif view == 'detail' %}
+<section class="external-card">
+<h4>الحجز #{{ booking.id }} – {{ booking.customer.name }}</h4>
+<div class="external-grid">
+<div><strong>B/L:</strong> {{ booking.bl_number }} – {{ booking.bl_date }}</div>
+<div><strong>المسار:</strong> {{ booking.origin_port }} ← {{ booking.destination_port }}</div>
+<div><strong>الخط الملاحي:</strong> {{ booking.shipping_line }}</div>
+<div><strong>مقدم الخدمة:</strong> {{ booking.provider.name }}</div>
+<div><strong>الحاويات:</strong> {{ booking.containers }} – {{ booking.container_details or '' }}</div>
+<div><strong>استحقاق الدفع:</strong> {{ booking.due_date }}</div>
+</div></section>
+<div class="external-list">
+<section class="external-card"><h5>مستحقات الزبون</h5><div class="external-metric">{{ balance.receivable }} {{ booking.currency }}</div><small>المستلم: {{ balance.received }} / {{ booking.sale_amount }}</small></section>
+<section class="external-card"><h5>مستحقات مقدم الخدمة</h5><div class="external-metric">{{ balance.payable }} {{ booking.currency }}</div><small>المدفوع: {{ balance.spent }} / {{ booking.provider_cost }}</small></section>
+<section class="external-card"><h5>الربح المتوقع</h5><div class="external-metric">{{ balance.profit }} {{ booking.currency }}</div></section>
+</div>
+<section class="external-card">
+<h5>تسجيل دفعة</h5>
+<form method="post" action="{{ url_for('carrier_bookings.payment', booking_id=booking.id) }}" class="external-grid">
+<input type="hidden" name="_csrf" value="{{ csrf }}">
+<div class="external-field"><label for="direction">الجهة</label><select class="form-select" id="direction" name="direction"><option value="CUSTOMER">مستلم من الزبون</option><option value="PROVIDER">مدفوع لمقدم الخدمة</option></select></div>
+<div class="external-field"><label for="amount">المبلغ</label><input class="form-control" type="number" step="0.01" min="0.01" id="amount" name="amount" required></div>
+<div class="external-field"><label for="paid_at">تاريخ الدفع</label><input class="form-control" type="date" id="paid_at" name="paid_at" required></div>
+<div class="external-field"><label for="reference">رقم الوصل</label><input class="form-control" id="reference" name="reference"></div>
+<button class="btn btn-primary" type="submit">تسجيل الدفعة</button>
+</form>
+</section>
+<section class="external-card"><h5>تسوية الرصيد</h5><p class="text-muted small">زر «مسددة» يسجل كامل الرصيد المتبقي كدفعة فعلية. استخدمه فقط بعد التأكد من استلام/دفع المبلغ.</p><div class="external-actions">
+{% for direction,label,remaining in [('CUSTOMER','الزبون: مسددة',balance.receivable),('PROVIDER','مقدم الخدمة: مسددة',balance.payable)] %}
+<form method="post" action="{{ url_for('carrier_bookings.settle', booking_id=booking.id) }}" onsubmit="return confirm('هل تؤكد تسجيل كامل الرصيد المتبقي كدفعة؟')"><input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="direction" value="{{ direction }}"><button class="btn btn-outline-success" type="submit" {% if remaining <= 0 %}disabled{% endif %}>{{ label }}</button></form>
+{% endfor %}</div></section>
+<section class="external-card"><h5>سجل الدفعات</h5><div class="table-responsive"><table class="table table-sm"><thead><tr><th>الجهة</th><th>المبلغ</th><th>التاريخ</th><th>المرجع</th></tr></thead><tbody>{% for p in payments %}<tr><td>{{ 'من الزبون' if p.direction == 'CUSTOMER' else 'لمقدم الخدمة' }}</td><td>{{ p.amount }} {{ booking.currency }}</td><td>{{ p.paid_at }}</td><td>{{ p.reference or '—' }}</td></tr>{% else %}<tr><td colspan="4">لا توجد دفعات</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="external-card"><h5>التتبع</h5><p class="small text-muted">يمكن طلب حالة التتبع من النظام الحالي باستخدام رقم B/L. تتطلب الخدمة إعدادات API صالحة.</p><button class="btn btn-outline-primary" type="button" id="tracking-button">فحص التتبع</button><pre id="tracking-result" class="mt-2 small" style="white-space:pre-wrap;overflow-wrap:anywhere" aria-live="polite"></pre></section>
+<script>
+document.getElementById('tracking-button').addEventListener('click',async function(){
+const el=document.getElementById('tracking-result');el.textContent='جاري جلب بيانات التتبع...';
+try{const response=await fetch({{ url_for('carrier_bookings.tracking',booking_id=booking.id)|tojson }},{credentials:'same-origin'});const data=await response.json();el.textContent=JSON.stringify(data,null,2)}catch(e){el.textContent='تعذر الاتصال بخدمة التتبع'}
+});
+</script>
+{% else %}
+<div class="external-list">
+{% for booking,balance in bookings %}
+<article class="external-card"><h5><a href="{{ url_for('carrier_bookings.detail',booking_id=booking.id) }}">{{ booking.customer.name }}</a></h5>
+<div class="text-muted small mb-2">B/L: {{ booking.bl_number }} | {{ booking.origin_port }} ← {{ booking.destination_port }}</div>
+<div>المتبقي من الزبون: <strong>{{ balance.receivable }} {{ booking.currency }}</strong></div>
+<div>المتبقي لمقدم الخدمة: <strong>{{ balance.payable }} {{ booking.currency }}</strong></div>
+{% if balance.receivable <= 0 %}<span class="badge bg-success">مسددة</span>{% elif booking.due_date < today %}<span class="badge bg-danger">متأخرة</span>{% else %}<span class="badge bg-warning text-dark">غير مسددة</span>{% endif %}
+<div class="mt-3"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('carrier_bookings.detail',booking_id=booking.id) }}">عرض التفاصيل والدفعات</a></div>
+</article>
+{% else %}<div class="external-card">لا توجد حجوزات خارجية. <a href="{{ url_for('carrier_bookings.new') }}">أضف أول حجز</a></div>{% endfor %}
+</div>
+{% endif %}
+</div>
+{% endblock %}

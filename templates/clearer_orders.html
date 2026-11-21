@@ -1,7 +1,7 @@
 {% extends "provider_base.html" %}
 {% block title %}طلبات التخليص{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4"><div><h4 class="mb-1">طلبات التخليص</h4><div class="text-muted small">الطلبات التي اختارك التاجر كمخلص لها. السعر يحتاج موافقة التاجر قبل اعتماد التنفيذ.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('clearer_orders', status='ARCHIVE' if status != 'ARCHIVE' else 'ACTIVE') }}">{{ 'أرشيف المنجز' if status != 'ARCHIVE' else 'الطلبات الفعالة' }}</a></div>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4 portexa-list-heading"><div><h4 class="mb-1">طلبات التخليص</h4><div class="text-muted small">الطلبات التي اختارك التاجر كمخلص لها. السعر يحتاج موافقة التاجر قبل اعتماد التنفيذ.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('clearer_orders', status='ARCHIVE' if status != 'ARCHIVE' else 'ACTIVE') }}">{{ 'أرشيف المنجز' if status != 'ARCHIVE' else 'الطلبات الفعالة' }}</a></div>
 <div class="row g-3">
 {% for s in shipments %}
 <div class="col-12"><div class="card border-0 shadow-sm service-order-card"><div class="card-body">

@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 {% block title %}{% if user %}تعديل معلن{% else %}إنشاء حساب معلن{% endif %}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4 portexa-list-heading">
   <div><h4 class="mb-1">{% if user %}عرض/تعديل حساب معلن{% else %}إنشاء حساب معلن{% endif %}</h4><div class="text-muted small">حساب منفصل يدخل إلى لوحة الإعلانات فقط.</div></div>
   <a class="btn btn-outline-secondary" href="{{ url_for('admin_advertisers') }}">إغلاق</a>
 </div>

@@ -1,7 +1,7 @@
 {% extends "provider_base.html" %}
 {% block title %}طلبات النقل{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4"><div><h4 class="mb-1">طلبات النقل</h4><div class="text-muted small">طلبات حجز المساحة التي اختارك التاجر كشركة نقل لها. مبلغ النقل يحتاج موافقة التاجر.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('carrier_orders', status='ARCHIVE' if status != 'ARCHIVE' else 'ACTIVE') }}">{{ 'أرشيف المنجز' if status != 'ARCHIVE' else 'الطلبات الفعالة' }}</a></div>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4 portexa-list-heading"><div><h4 class="mb-1">طلبات النقل</h4><div class="text-muted small">طلبات حجز المساحة التي اختارك التاجر كشركة نقل لها. مبلغ النقل يحتاج موافقة التاجر.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('carrier_orders', status='ARCHIVE' if status != 'ARCHIVE' else 'ACTIVE') }}">{{ 'أرشيف المنجز' if status != 'ARCHIVE' else 'الطلبات الفعالة' }}</a></div>
 <div class="row g-3">
 {% for s in shipments %}
 <div class="col-12"><div class="card border-0 shadow-sm service-order-card"><div class="card-body">

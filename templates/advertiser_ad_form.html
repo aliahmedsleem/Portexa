@@ -1,7 +1,7 @@
 {% extends "advertiser_base.html" %}
 {% block title %}{% if ad %}تعديل إعلان{% else %}رفع إعلان{% endif %}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4"><div><h4>{% if ad %}تعديل إعلان{% else %}رفع إعلان جديد{% endif %}</h4><div class="text-muted small">ارفع صورة واضحة بقياس عريض حتى تظهر بشكل مرتب أسفل النظام.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('advertiser_ads') }}">إغلاق</a></div>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4 portexa-list-heading"><div><h4>{% if ad %}تعديل إعلان{% else %}رفع إعلان جديد{% endif %}</h4><div class="text-muted small">ارفع صورة واضحة بقياس عريض حتى تظهر بشكل مرتب أسفل النظام.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('advertiser_ads') }}">إغلاق</a></div>
 <div class="card border-0 shadow-sm"><div class="card-body"><form method="post" enctype="multipart/form-data" class="row g-3">
 <div class="col-md-6"><label class="form-label">عنوان الإعلان</label><input class="form-control" name="title" value="{{ ad.title if ad else '' }}" required></div>
 <div class="col-md-6"><label class="form-label">رابط الإعلان</label><input class="form-control" name="link_url" value="{{ ad.link_url if ad else '' }}" placeholder="اختياري"></div>

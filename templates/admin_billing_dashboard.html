@@ -1,0 +1,57 @@
+{% extends "admin_base.html" %}
+{% block title %}الاشتراكات والمالية | PORTEXA{% endblock %}
+{% block content %}
+<div class="portexa-list-heading d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+ <div><h4 class="mb-1">لوحة الاشتراكات والمالية</h4><div class="text-muted small">المبالغ بالدينار العراقي · الإيرادات من الفواتير المسددة فقط · التوقعات تقديرية</div></div>
+ <a class="btn btn-outline-secondary" href="{{ url_for('admin_users') }}">إدارة الحسابات</a>
+</div>
+<div class="row g-3 mb-4">
+{% for title, value in [('إجمالي حسابات العملاء', counts.total), ('التجار', counts.merchants), ('المخلصون', counts.clearers), ('شركات النقل', counts.carriers), ('الحسابات الفعالة', counts.active), ('الحسابات غير الفعالة', counts.inactive)] %}
+<div class="col-6 col-xl-2"><div class="card h-100 shadow-sm border-0"><div class="card-body"><div class="text-muted small mb-2">{{ title }}</div><div class="fs-3 fw-bold">{{ value }}</div></div></div></div>
+{% endfor %}
+</div>
+<div class="row g-3 mb-4">
+{% for title, amount, detail in [
+('الاشتراكات المسددة', paid, 'إجمالي الفواتير المؤكدة تاريخياً'),
+('الاشتراكات غير المسددة', unpaid, 'إجمالي الفواتير المفتوحة'),
+('فواتير مستحقة خلال 30 يوماً', upcoming, 'فواتير مفتوحة ذات استحقاق قادم'),
+('تجديدات متوقعة خلال 30 يوماً', forecast, 'تقدير وفق الأسعار الحالية وتواريخ الانتهاء')
+] %}
+<div class="col-12 col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+<div class="text-muted small mb-2">{{ title }}</div><div class="fs-4 fw-bold text-nowrap">{{ '{:,}'.format(amount) }} <span class="fs-6">د.ع</span></div><div class="text-muted small mt-2">{{ detail }}</div>
+</div></div></div>
+{% endfor %}
+</div>
+<div class="row g-3 mb-4">
+<div class="col-12 col-lg-5"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+<h5 class="fw-bold mb-3">أسعار الاشتراكات</h5>
+<form method="post" action="{{ url_for('billing.save_prices') }}"><input type="hidden" name="billing_csrf" value="{{ billing_csrf }}">
+{% for plan in plans %}<div class="mb-3"><label class="form-label">{{ labels[plan] }} (د.ع)</label><input class="form-control" type="number" min="0" step="1" max="100000000000" name="{{ plan }}" value="{{ prices.get(plan, 0) }}" required></div>{% endfor %}
+<button class="btn btn-primary w-100" type="submit">حفظ الأسعار</button>
+</form><p class="small text-muted mt-3 mb-0">تعديل السعر لا يغير الفواتير السابقة. لا تُصدر فاتورة بسعر صفر.</p>
+</div></div></div>
+<div class="col-12 col-lg-7"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+<h5 class="fw-bold mb-3">إصدار فاتورة اشتراك</h5>
+<form method="post" action="{{ url_for('billing.issue_invoice') }}"><input type="hidden" name="billing_csrf" value="{{ billing_csrf }}">
+<div class="mb-3"><label class="form-label">حساب العميل</label><select name="user_id" class="form-select" required><option value="">اختر الحساب</option>{% for u in users %}<option value="{{ u.id }}">{{ u.company_name or u.username }} (#{{ u.id }})</option>{% endfor %}</select></div>
+<div class="mb-3"><label class="form-label">الباقة</label><select name="plan_type" class="form-select" required>{% for plan in plans %}<option value="{{ plan }}">{{ labels[plan] }} — {{ '{:,}'.format(prices.get(plan, 0)) }} د.ع</option>{% endfor %}</select></div>
+<button class="btn btn-primary" type="submit">إصدار فاتورة غير مسددة</button>
+</form><p class="small text-muted mt-3 mb-0">إصدار الفاتورة لا يفعّل الحساب. التفعيل يتم عند تأكيد الدفع بمرجع واضح.</p>
+</div></div></div>
+</div>
+<div class="card border-0 shadow-sm"><div class="card-body">
+<h5 class="fw-bold mb-3">آخر 100 فاتورة</h5>
+<div class="table-responsive"><table class="table table-hover align-middle">
+<thead><tr><th>رقم</th><th>العميل</th><th>الباقة</th><th>المبلغ</th><th>الحالة</th><th>تاريخ الإصدار</th><th>المرجع</th><th>الإجراء</th></tr></thead>
+<tbody>{% for inv in invoices %}
+<tr><td>#{{ inv.id }}</td><td>{{ lookup[inv.user_id].company_name or lookup[inv.user_id].username if inv.user_id in lookup else 'حساب غير متاح' }}</td><td>{{ labels.get(inv.plan_type, inv.plan_type) }}</td><td>{{ '{:,}'.format(inv.amount_iqd) }} د.ع</td>
+<td>{% if inv.status == 'PAID' %}<span class="badge text-bg-success">مسددة</span>{% elif inv.status == 'UNPAID' %}<span class="badge text-bg-warning">غير مسددة</span>{% else %}<span class="badge text-bg-secondary">ملغاة</span>{% endif %}</td>
+<td>{{ inv.issued_at.strftime('%Y-%m-%d') }}</td><td>{{ inv.payment_reference or '-' }}</td>
+<td>{% if inv.status == 'UNPAID' %}
+<form class="d-flex flex-wrap gap-2 mb-1" method="post" action="{{ url_for('billing.mark_paid', invoice_id=inv.id) }}" onsubmit="return confirm('هل تأكدت من استلام المبلغ فعلياً؟');"><input type="hidden" name="billing_csrf" value="{{ billing_csrf }}">
+<input class="form-control form-control-sm" style="max-width:170px" name="payment_reference" placeholder="رقم الوصل/مرجع الدفع" required maxlength="150"><button class="btn btn-sm btn-success" type="submit">تأكيد التسديد</button></form>
+<form method="post" action="{{ url_for('billing.void_invoice', invoice_id=inv.id) }}" onsubmit="return confirm('إلغاء الفاتورة غير المسددة؟');"><input type="hidden" name="billing_csrf" value="{{ billing_csrf }}"><button class="btn btn-sm btn-outline-danger" type="submit">إلغاء الفاتورة</button></form>
+{% else %}—{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="text-center text-muted py-4">لا توجد فواتير بعد. الأرصدة صفر حتى يتم تسجيلها.</td></tr>{% endfor %}</tbody></table></div>
+</div></div>
+{% endblock %}

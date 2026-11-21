@@ -1,10 +1,10 @@
+import sqlite3
+from pathlib import Path
 from datetime import datetime, timedelta, date
 from io import BytesIO
 import os
 import time
 import secrets
-import sqlite3
-from pathlib import Path
 
 import requests
 from flask import (
@@ -41,6 +41,13 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "sqlite:///" + os.path.join(BASE_DIR, "app.db")
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Persistent login: 30 days
+from datetime import timedelta
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
+app.config["REMEMBER_COOKIE_SECURE"] = True
+app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
 app.config["SUPPORT_UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "support_uploads")
 app.config["AD_UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "ad_uploads")
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
@@ -144,6 +151,8 @@ class Factory(db.Model):
     # بدون unique حتى ما يتعارض بين المستخدمين
     name = db.Column(db.String(200), nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True, index=True)
+    country_id = db.Column(db.Integer, db.ForeignKey("country.id"), nullable=True, index=True)
+    country = db.relationship("Country", foreign_keys=[country_id])
 
 
 class Country(db.Model):
@@ -422,14 +431,37 @@ def create_notification(user_id, title, body="", url=None):
     db.session.add(SystemNotification(user_id=user_id, title=title, body=body, url=url, is_read=False))
 
 
+def notification_category(notification):
+    """Classify old and new notifications without a database migration."""
+    title = (notification.title or "").lower()
+    if any(word in title for word in ("تذكرة", "الدعم", "رسالة")):
+        return ("الدعم الفني", "support", "info")
+    if any(word in title for word in ("إعلان", "الاعلان")):
+        return ("الإعلانات", "ads", "warning")
+    if any(word in title for word in ("تخليص", "المخلص")):
+        return ("التخليص الجمركي", "clearance", "primary")
+    if any(word in title for word in ("نقل", "الشحن", "حجز مساحة")):
+        return ("الشحن والنقل", "shipping", "info")
+    if any(word in title for word in ("سعر", "مبلغ", "قبول", "رفض")):
+        return ("الموافقات والأسعار", "quotes", "warning")
+    if any(word in title for word in ("حساب", "اشتراك", "مستخدم")):
+        return ("إدارة النظام", "system", "secondary")
+    return ("عام", "general", "secondary")
+
+
+def notify_support_staff(title, body, url):
+    for member in User.query.filter_by(is_support=True, is_active=True).all():
+        create_notification(member.id, title, body, url)
+
+
 def notification_count():
-    if not current_user.is_authenticated or is_admin():
+    if not current_user.is_authenticated:
         return 0
     return SystemNotification.query.filter_by(user_id=current_user.id, is_read=False).count()
 
 
 def latest_notifications(limit=5):
-    if not current_user.is_authenticated or is_admin():
+    if not current_user.is_authenticated:
         return []
     return SystemNotification.query.filter_by(user_id=current_user.id).order_by(SystemNotification.id.desc()).limit(limit).all()
 
@@ -492,6 +524,7 @@ def archive_expired_ads():
         if expired:
             for ad in expired:
                 ad.status = "ARCHIVED"
+                create_notification(ad.advertiser_id, "انتهاء الإعلان", f"انتهت مدة إعلانك: {ad.title}، وانتقل إلى الأرشيف.", "/advertiser/ads")
             db.session.commit()
     except Exception:
         db.session.rollback()
@@ -572,7 +605,7 @@ def shipment_report_value(shipment, field_key):
     if field_key == "arrival_date":
         return shipment.arrival_date.strftime("%Y-%m-%d") if shipment.arrival_date else "-"
     if field_key == "shipping_mode":
-        return "بري" if shipment.shipping_mode == "BRI" else "بحري"
+        return shipping_mode_label(shipment.shipping_mode)
     if field_key == "status":
         return status_badge(shipment.status)[0]
     return "-"
@@ -755,63 +788,45 @@ def inject_helpers():
     }
 
 
-# SeaRates integration has been retired. No API credentials are kept in code.
-# Manual routing data lives in the independent Tracking Engine SQLite database.
+SYSTEM_SETTING_DEFAULTS = {
+    "tracking_api_key": "",
+    "tracking_base_url": "https://tracking.searates.com",
+    "tracking_default_sealine": "MSCU",
+    "tracking_cache_ttl": "120",
+}
 
 
-def manual_tracking_for_shipment(shipment_id):
-    """Read operator-entered route data only; never write to the engine DB here."""
-    db_path = Path(os.environ.get(
-        "PORTEXA_TRACKING_DB",
-        "/home/alialameeri/Portexa-Tracking-Engine/data/tracking.sqlite3"
-    )).expanduser()
-    if not db_path.is_file():
-        return None
+def get_system_setting(key: str, default=None):
     try:
-        uri = db_path.resolve().as_uri() + "?mode=ro"
-        with sqlite3.connect(uri, uri=True, timeout=3) as conn:
-            conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                "SELECT loading_port,current_port,next_port,discharge_port,"
-                "transshipment_port,vessel_name,voyage_number,container_number,"
-                "etd,eta,current_status,operator_notes,updated_at,source "
-                "FROM portexa_manual_routes WHERE source_shipment_id=?",
-                (shipment_id,),
-            ).fetchone()
-            return dict(row) if row else None
-    except (sqlite3.Error, OSError):
-        app.logger.warning("Manual route unavailable for shipment %s", shipment_id)
-        return None
+        row = SystemSetting.query.filter_by(key=key).first()
+        if row and row.value is not None:
+            return row.value
+    except Exception:
+        pass
+    return SYSTEM_SETTING_DEFAULTS.get(key, default)
 
 
-def container_tracking_for_shipment(shipment_id):
-    """Read independent per-container movements from the PORTEXA source database.
+def set_system_setting(key: str, value: str):
+    row = SystemSetting.query.filter_by(key=key).first()
+    if not row:
+        row = SystemSetting(key=key)
+        db.session.add(row)
+    row.value = (value or "").strip()
+    return row
 
-    This uses the application's own database connection and never writes to it.
-    Older installations without the table simply return an empty list.
-    """
+
+def tracking_settings():
+    ttl_raw = get_system_setting("tracking_cache_ttl", "120")
     try:
-        connection = db.session.connection()
-        table = connection.exec_driver_sql(
-            "SELECT 1 FROM sqlite_master WHERE type='table' "
-            "AND name='ops_container_movements'"
-        ).first()
-        if not table:
-            return []
-        columns = (
-            "container_number", "loading_port", "current_port", "next_port",
-            "discharge_port", "transshipment_port", "vessel_name",
-            "voyage_number", "etd", "eta", "current_status", "operator_notes"
-        )
-        rows = connection.exec_driver_sql(
-            "SELECT " + ",".join(columns) +
-            " FROM ops_container_movements WHERE shipment_id=? ORDER BY id",
-            (int(shipment_id),)
-        ).mappings().all()
-        return [dict(row) for row in rows]
-    except (sqlite3.Error, OSError) as exc:
-        app.logger.warning("Container movements unavailable for shipment %s: %s", shipment_id, exc)
-        return []
+        ttl = max(0, int(ttl_raw))
+    except Exception:
+        ttl = 120
+    return {
+        "api_key": get_system_setting("tracking_api_key", SYSTEM_SETTING_DEFAULTS["tracking_api_key"]),
+        "base_url": (get_system_setting("tracking_base_url", SYSTEM_SETTING_DEFAULTS["tracking_base_url"]) or SYSTEM_SETTING_DEFAULTS["tracking_base_url"]).rstrip("/"),
+        "default_sealine": get_system_setting("tracking_default_sealine", SYSTEM_SETTING_DEFAULTS["tracking_default_sealine"]),
+        "cache_ttl": ttl,
+    }
 
 
 # -------------------- Auth / Guards --------------------
@@ -827,11 +842,23 @@ def guard_everything():
     - مدير النظام: يدخل إلى لوحة الأدمن فقط.
     - المستخدم العادي: يدخل إلى نظام الشحنات الحالي فقط.
     """
-    allowed_endpoints = {"login", "logout", "static"}
+    allowed_endpoints = {
+        "login",
+        "logout",
+        "static",
+        "push_campaigns.worker",
+        "onboarding.landing",
+        "onboarding.google_login_start",
+        "onboarding.google_start",
+        "onboarding.google_callback",
+        "onboarding.complete_profile",
+    }
     if request.endpoint in allowed_endpoints:
         return
 
     if not current_user.is_authenticated:
+        if request.path == "/":
+            return redirect(url_for("onboarding.landing"))
         return redirect(url_for("login"))
 
     current_user.ensure_valid()
@@ -843,21 +870,21 @@ def guard_everything():
 
     if is_admin():
         # مدير النظام يدخل لوحة الإدارة فقط.
-        if not request.path.startswith("/admin"):
+        if not (request.path.startswith("/admin") or (request.path.startswith("/notifications") or request.path.startswith("/push"))):
             return redirect(url_for("admin_users"))
     elif is_support():
         # موظف الدعم الفني يدخل منظومة التكتات والإشعارات فقط.
-        if not (request.path.startswith("/support") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/support") or (request.path.startswith("/notifications") or request.path.startswith("/push"))):
             return redirect(url_for("support_tickets"))
     elif is_advertiser():
         # حساب المعلن يدخل فقط إلى لوحة إعلاناته.
-        if not request.path.startswith("/advertiser"):
+        if not (request.path.startswith("/advertiser") or (request.path.startswith("/notifications") or request.path.startswith("/push"))):
             return redirect(url_for("advertiser_ads"))
     elif is_clearer():
-        if not (request.path.startswith("/clearer") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/clearer") or (request.path.startswith("/notifications") or request.path.startswith("/push"))):
             return redirect(url_for("clearer_dashboard"))
     elif is_carrier():
-        if not (request.path.startswith("/carrier") or request.path.startswith("/notifications")):
+        if not (request.path.startswith("/carrier") or (request.path.startswith("/notifications") or request.path.startswith("/push"))):
             return redirect(url_for("carrier_dashboard"))
     else:
         # المستخدم العادي ممنوع من لوحة الإدارة ولوحة الموظفين ولوحة المعلنين.
@@ -870,9 +897,14 @@ def guard_everything():
 with app.app_context():
     db.create_all()
 
-    # Retired SeaRates settings are no longer initialized.
-    # Existing credentials in the database must be purged separately
-    # after backing up the database (see deployment instructions).
+    # Default system settings
+    try:
+        for _k, _v in SYSTEM_SETTING_DEFAULTS.items():
+            if not SystemSetting.query.filter_by(key=_k).first():
+                db.session.add(SystemSetting(key=_k, value=_v))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
     # Migration: add columns if old db
     try:
@@ -884,10 +916,62 @@ with app.app_context():
                 db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {sql}"))
                 db.session.commit()
 
+        def rebuild_simple_lookup_table_without_name_unique(table_name):
+            """
+            النسخ القديمة كان فيها UNIQUE على name فقط، وهذا يكسر فصل بيانات المستخدمين.
+            نعيد بناء جدول factory/country بدون unique عام، مع الحفاظ على id حتى لا تنكسر الشحنات المرتبطة.
+            """
+            if table_name not in insp.get_table_names():
+                return
+
+            indexes = db.session.execute(db.text(f"PRAGMA index_list({table_name})")).fetchall()
+            has_global_name_unique = False
+            for idx in indexes:
+                # SQLite returns: seq, name, unique, origin, partial
+                idx_name = idx[1]
+                is_unique = bool(idx[2])
+                if not is_unique:
+                    continue
+                cols = db.session.execute(db.text(f"PRAGMA index_info({idx_name})")).fetchall()
+                col_names = [c[2] for c in cols]
+                if col_names == ["name"]:
+                    has_global_name_unique = True
+                    break
+
+            if not has_global_name_unique:
+                return
+
+            old_table = f"{table_name}_old_unique_fix"
+            current_cols = [c["name"] for c in insp.get_columns(table_name)]
+            owner_select = "owner_id" if "owner_id" in current_cols else "NULL"
+
+            db.session.execute(db.text("PRAGMA foreign_keys=OFF"))
+            db.session.execute(db.text(f"DROP TABLE IF EXISTS {old_table}"))
+            db.session.execute(db.text(f"ALTER TABLE {table_name} RENAME TO {old_table}"))
+            db.session.execute(db.text(f"""
+                CREATE TABLE {table_name} (
+                    id INTEGER NOT NULL,
+                    name VARCHAR(200) NOT NULL,
+                    owner_id INTEGER,
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(owner_id) REFERENCES user (id)
+                )
+            """))
+            db.session.execute(db.text(f"""
+                INSERT INTO {table_name} (id, name, owner_id)
+                SELECT id, name, {owner_select} FROM {old_table}
+            """))
+            db.session.execute(db.text(f"DROP TABLE {old_table}"))
+            db.session.execute(db.text(f"CREATE INDEX IF NOT EXISTS ix_{table_name}_owner_id ON {table_name} (owner_id)"))
+            db.session.execute(db.text("PRAGMA foreign_keys=ON"))
+            db.session.commit()
+
         if "factory" in insp.get_table_names():
             add_col_if_missing("factory", "owner_id", "owner_id INTEGER")
+            rebuild_simple_lookup_table_without_name_unique("factory")
         if "country" in insp.get_table_names():
             add_col_if_missing("country", "owner_id", "owner_id INTEGER")
+            rebuild_simple_lookup_table_without_name_unique("country")
         if "shipment" in insp.get_table_names():
             add_col_if_missing("shipment", "owner_id", "owner_id INTEGER")
             add_col_if_missing("shipment", "msc_tracking", "msc_tracking VARCHAR(300)")
@@ -981,6 +1065,83 @@ with app.app_context():
     db.session.commit()
 
 
+# ============================================================
+# SeaRates Tracking API (Third Party)
+# Values are loaded dynamically from Admin > System Settings.
+# ============================================================
+_tracking_cache = {}  # { key: (expire_ts, data) }
+
+
+def _cache_get(key: str):
+    item = _tracking_cache.get(key)
+    if not item:
+        return None
+    expire_ts, data = item
+    if time.time() > expire_ts:
+        _tracking_cache.pop(key, None)
+        return None
+    return data
+
+
+def _cache_set(key: str, data, ttl_seconds=120):
+    _tracking_cache[key] = (time.time() + ttl_seconds, data)
+
+
+def _searates_normalize(raw: dict) -> dict:
+    data = raw.get("data") or {}
+    meta = data.get("metadata") or {}
+
+    overall_status = meta.get("status") or meta.get("shipment_status") or ""
+    eta = (meta.get("eta") or "") or (data.get("eta") or "")
+
+    events = data.get("events")
+    if not isinstance(events, list):
+        route = data.get("route") or {}
+        events = route.get("events")
+    if not isinstance(events, list):
+        events = []
+
+    normalized_events = []
+    for ev in events:
+        if not isinstance(ev, dict):
+            continue
+        normalized_events.append({
+            "date": ev.get("date") or ev.get("event_time") or ev.get("timestamp") or "",
+            "location": ev.get("location") or ev.get("port") or ev.get("place") or "",
+            "description": ev.get("description") or ev.get("event") or ev.get("status") or "",
+        })
+
+    container_no = ""
+    containers = data.get("containers")
+    if isinstance(containers, list) and containers:
+        c0 = containers[0] if isinstance(containers[0], dict) else {}
+        container_no = c0.get("number") or c0.get("container") or ""
+    if not container_no:
+        container_no = meta.get("container") or ""
+
+    return {
+        "ok": True,
+        "provider": "SeaRates",
+        "carrier": meta.get("sealine_name") or "MSC",
+        "sealine": meta.get("sealine") or tracking_settings()["default_sealine"],
+        "bl": meta.get("number") or "",
+        "status": overall_status,
+        "eta": eta,
+        "container": container_no,
+        "events": normalized_events,
+    }
+
+
+def searates_track_by_bl(bl: str, sealine: str = None, force_update: bool = False, route: bool = True, api_key: str = None, base_url: str = None) -> dict:
+    return {"ok": False, "error": "SeaRates integration retired"}
+
+
+@app.get("/api/tracking/searates")
+@login_required
+def api_tracking_searates():
+    return jsonify({"ok": False, "error": "SeaRates integration retired"}), 410
+
+
 # -------------------- Auth Routes --------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -1007,9 +1168,9 @@ def login():
             flash("الحساب غير فعال أو انتهى الاشتراك.", "danger")
             return render_template("login.html")
 
-        login_user(user)
+        login_user(user, remember=True)
         if user.is_admin:
-            return redirect(url_for("admin_users"))
+            return redirect(url_for("billing.dashboard"))
         if user.is_support:
             return redirect(url_for("support_tickets"))
         if getattr(user, "is_advertiser", False):
@@ -1145,7 +1306,7 @@ def shipment_details(shipment_id):
     s = owner_filter(Shipment.query).filter(Shipment.id == shipment_id).first_or_404()
 
     status_txt, _ = status_badge(s.status)
-    mode = "بري" if s.shipping_mode == "BRI" else "بحري"
+    mode = shipping_mode_label(s.shipping_mode)
     cargo = "حاوية" if s.cargo_type == "CONTAINER" else "سيارة"
 
     def d(dt):
@@ -1163,8 +1324,8 @@ def shipment_details(shipment_id):
 
         "bol_no": s.bol_no or "",
         "msc_tracking": s.msc_tracking or "",
-        "manual_tracking": manual_tracking_for_shipment(s.id),
-        "container_movements": container_tracking_for_shipment(s.id),
+        "manual_tracking": portexa_manual_tracking(s.id),
+        "container_movements": portexa_container_movements(s.id),
 
         "shipping_mode": mode,
         "cargo_type": cargo,
@@ -1199,16 +1360,25 @@ def shipments_new():
     carriers = User.query.filter(User.id.in_(favorite_carrier_ids), User.is_carrier == True, User.is_active == True).order_by(User.company_name.asc(), User.username.asc()).all() if favorite_carrier_ids else []
 
     if request.method == "POST":
+        shipping_mode = (request.form.get("shipping_mode") or "BRI").strip()
+        if shipping_mode not in ("BRI", "BAHRI", "MULTIMODAL"):
+            flash("نوع الشحن غير صالح.", "danger")
+            return render_template(
+                "shipment_form.html",
+                factories=factories, countries=countries,
+                clearers=clearers, carriers=carriers,
+                shipment=None
+            )
+
         factory_id = request.form.get("factory_id")
-        country_id = request.form.get("country_id")
-        if not factory_id or not country_id or not str(factory_id).isdigit() or not str(country_id).isdigit():
-            flash("يرجى اختيار اسم المصنع والبلد.", "danger")
+        if not factory_id or not str(factory_id).isdigit():
+            flash("يرجى اختيار الشاحن.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=None)
 
         factory = owner_filter(Factory.query).filter(Factory.id == int(factory_id)).first()
-        country = owner_filter(Country.query).filter(Country.id == int(country_id)).first()
+        country = owner_filter(Country.query).filter(Country.id == factory.country_id).first() if factory and factory.country_id else None
         if not factory or not country:
-            flash("لا يمكن استخدام معمل أو بلد تابع لمستخدم آخر.", "danger")
+            flash("الشاحن غير مرتبط ببلد صالح. يرجى تحديد البلد من صفحة الشاحن والبلد.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=None)
 
         selected_clearer_id = request.form.get("clearer_id", type=int) or None
@@ -1234,18 +1404,18 @@ def shipments_new():
             invoice_currency=request.form.get("invoice_currency") or "USD",
 
             bol_no=request.form.get("bol_no") or None,
-            msc_tracking=(request.form.get("msc_tracking") or "").strip() or None,
+            msc_tracking=None,
 
-            shipping_mode=request.form.get("shipping_mode") or "BRI",
+            shipping_mode=shipping_mode,
             cargo_type=request.form.get("cargo_type") or "CONTAINER",
 
             containers_count=int(request.form.get("containers_count") or 0),
 
-            ship_date=parse_date(request.form.get("ship_date")),
-            arrival_date=parse_date(request.form.get("arrival_date")),
+            ship_date=None,
+            arrival_date=None,
 
             shipping_cost=to_float(request.form.get("shipping_cost")),
-            shipping_paid_by=request.form.get("shipping_paid_by") or None,
+            shipping_paid_by=None,
 
             other_details=request.form.get("other_details") or None,
             shipping_details=request.form.get("shipping_details") or None,
@@ -1294,16 +1464,25 @@ def shipments_edit(shipment_id):
     carriers = User.query.filter(User.id.in_(favorite_carrier_ids), User.is_carrier == True, User.is_active == True).order_by(User.company_name.asc(), User.username.asc()).all() if favorite_carrier_ids else []
 
     if request.method == "POST":
+        shipping_mode = (request.form.get("shipping_mode") or "BRI").strip()
+        if shipping_mode not in ("BRI", "BAHRI", "MULTIMODAL"):
+            flash("نوع الشحن غير صالح.", "danger")
+            return render_template(
+                "shipment_form.html",
+                factories=factories, countries=countries,
+                clearers=clearers, carriers=carriers,
+                shipment=shipment
+            )
+
         factory_id = request.form.get("factory_id")
-        country_id = request.form.get("country_id")
-        if not factory_id or not country_id or not str(factory_id).isdigit() or not str(country_id).isdigit():
-            flash("يرجى اختيار اسم المصنع والبلد.", "danger")
+        if not factory_id or not str(factory_id).isdigit():
+            flash("يرجى اختيار الشاحن.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=shipment)
 
         factory = owner_filter(Factory.query).filter(Factory.id == int(factory_id)).first()
-        country = owner_filter(Country.query).filter(Country.id == int(country_id)).first()
+        country = owner_filter(Country.query).filter(Country.id == factory.country_id).first() if factory and factory.country_id else None
         if not factory or not country:
-            flash("لا يمكن استخدام معمل أو بلد تابع لمستخدم آخر.", "danger")
+            flash("الشاحن غير مرتبط ببلد صالح. يرجى تحديد البلد من صفحة الشاحن والبلد.", "danger")
             return render_template("shipment_form.html", factories=factories, countries=countries, clearers=clearers, carriers=carriers, shipment=shipment)
 
         shipment.factory_id = factory.id
@@ -1330,18 +1509,14 @@ def shipments_edit(shipment_id):
 
         if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
             shipment.bol_no = request.form.get("bol_no") or None
-        shipment.msc_tracking = (request.form.get("msc_tracking") or "").strip() or None
 
-        shipment.shipping_mode = request.form.get("shipping_mode") or "BRI"
+        shipment.shipping_mode = shipping_mode
         shipment.cargo_type = request.form.get("cargo_type") or "CONTAINER"
 
         shipment.containers_count = int(request.form.get("containers_count") or 0)
 
-        if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
-            shipment.ship_date = parse_date(request.form.get("ship_date"))
-            shipment.arrival_date = parse_date(request.form.get("arrival_date"))
-            shipment.shipping_cost = to_float(request.form.get("shipping_cost"))
-            shipment.shipping_paid_by = request.form.get("shipping_paid_by") or None
+        # Merchant controls the manually entered shipping amount.
+        shipment.shipping_cost = to_float(request.form.get("shipping_cost"))
 
         shipment.other_details = request.form.get("other_details") or None
         if not carrier_controls_shipping or new_carrier_id != shipment.carrier_id:
@@ -1388,38 +1563,105 @@ def shipments_delete(shipment_id):
     return redirect(url_for("shipments_list"))
 
 
+def shipping_mode_label(value):
+    return {
+        "BRI": "بري",
+        "BAHRI": "بحري",
+        "MULTIMODAL": "متعدد الوسائط",
+    }.get(value, value or "غير محدد")
+
+
 # -------------------- Manage Factories / Countries --------------------
+def get_or_create_shipper_country(name):
+    name = " ".join((name or "").strip().split())
+    if not name:
+        return None
+
+    country = owner_filter(Country.query).filter(
+        db.func.lower(Country.name) == name.lower()
+    ).first()
+
+    if country:
+        return country
+
+    country = Country(name=name, owner_id=current_owner_id())
+    db.session.add(country)
+    db.session.flush()
+    return country
+
+
 @app.route("/manage/factories", methods=["GET", "POST"])
 @login_required
 def manage_factories():
     if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        if not name:
-            flash("اسم المعمل مطلوب.", "danger")
+        name = " ".join((request.form.get("name") or "").strip().split())
+        country_name = " ".join((request.form.get("country_name") or "").strip().split())
+
+        if not name or not country_name:
+            flash("اسم الشاحن والبلد مطلوبان.", "danger")
             return redirect(url_for("manage_factories"))
 
-        db.session.add(Factory(name=name, owner_id=current_owner_id()))
+        existing = owner_filter(Factory.query).filter(
+            db.func.lower(Factory.name) == name.lower()
+        ).first()
+
+        if existing:
+            flash("هذا الشاحن موجود مسبقاً ضمن حسابك.", "warning")
+            return redirect(url_for("manage_factories"))
+
+        country = get_or_create_shipper_country(country_name)
+
+        db.session.add(
+            Factory(
+                name=name,
+                owner_id=current_owner_id(),
+                country_id=country.id
+            )
+        )
         db.session.commit()
-        flash("تمت إضافة المعمل.", "success")
+
+        flash("تمت إضافة الشاحن والبلد بنجاح.", "success")
         return redirect(url_for("manage_factories"))
 
     factories = owner_filter(Factory.query).order_by(Factory.name.asc()).all()
-    return render_template("manage_factories.html", factories=factories)
+    countries = owner_filter(Country.query).order_by(Country.name.asc()).all()
+    return render_template(
+        "manage_factories.html",
+        factories=factories,
+        countries=countries
+    )
 
 
 @app.post("/manage/factories/<int:factory_id>/update")
 @login_required
 def update_factory(factory_id):
-    factory = owner_filter(Factory.query).filter(Factory.id == factory_id).first_or_404()
-    name = (request.form.get("name") or "").strip()
+    factory = owner_filter(Factory.query).filter(
+        Factory.id == factory_id
+    ).first_or_404()
 
-    if not name:
-        flash("اسم المعمل مطلوب.", "danger")
+    name = " ".join((request.form.get("name") or "").strip().split())
+    country_name = " ".join((request.form.get("country_name") or "").strip().split())
+
+    if not name or not country_name:
+        flash("اسم الشاحن والبلد مطلوبان.", "danger")
         return redirect(url_for("manage_factories"))
 
+    duplicate = owner_filter(Factory.query).filter(
+        Factory.id != factory.id,
+        db.func.lower(Factory.name) == name.lower()
+    ).first()
+
+    if duplicate:
+        flash("هذا الشاحن موجود مسبقاً ضمن حسابك.", "warning")
+        return redirect(url_for("manage_factories"))
+
+    country = get_or_create_shipper_country(country_name)
+
     factory.name = name
+    factory.country_id = country.id
+
     db.session.commit()
-    flash("تم تعديل المعمل بنجاح.", "success")
+    flash("تم تحديث الشاحن والبلد بنجاح.", "success")
     return redirect(url_for("manage_factories"))
 
 
@@ -1448,6 +1690,11 @@ def manage_countries():
             flash("اسم البلد مطلوب.", "danger")
             return redirect(url_for("manage_countries"))
 
+        existing_country = owner_filter(Country.query).filter(db.func.lower(Country.name) == name.lower()).first()
+        if existing_country:
+            flash("هذا البلد موجود مسبقاً ضمن حسابك.", "warning")
+            return redirect(url_for("manage_countries"))
+
         db.session.add(Country(name=name, owner_id=current_owner_id()))
         db.session.commit()
         flash("تمت إضافة البلد.", "success")
@@ -1467,6 +1714,14 @@ def update_country(country_id):
         flash("اسم البلد مطلوب.", "danger")
         return redirect(url_for("manage_countries"))
 
+    duplicate_country = owner_filter(Country.query).filter(
+        Country.id != country.id,
+        db.func.lower(Country.name) == name.lower()
+    ).first()
+    if duplicate_country:
+        flash("هذا البلد موجود مسبقاً ضمن حسابك.", "warning")
+        return redirect(url_for("manage_countries"))
+
     country.name = name
     db.session.commit()
     flash("تم تعديل البلد بنجاح.", "success")
@@ -1479,7 +1734,8 @@ def delete_country(country_id):
     country = owner_filter(Country.query).filter(Country.id == country_id).first_or_404()
 
     linked_shipments_count = owner_filter(Shipment.query).filter(Shipment.country_id == country.id).count()
-    if linked_shipments_count > 0:
+    linked_factories_count = owner_filter(Factory.query).filter(Factory.country_id == country.id).count()
+    if linked_shipments_count > 0 or linked_factories_count > 0:
         flash("لا يمكن حذف البلد لأنه مرتبط بشحنات مسجلة. يمكنك تعديل اسمه بدلاً من الحذف.", "warning")
         return redirect(url_for("manage_countries"))
 
@@ -1569,7 +1825,7 @@ def apply_report_filters(form):
         q = q.filter(Shipment.invoice_amount <= inv_max)
 
     shipping_mode = (form.get("shipping_mode") or "").strip()
-    if shipping_mode in ("BRI", "BAHRI"):
+    if shipping_mode in ("BRI", "BAHRI", "MULTIMODAL"):
         q = q.filter(Shipment.shipping_mode == shipping_mode)
 
     cargo_type = (form.get("cargo_type") or "").strip()
@@ -1615,7 +1871,7 @@ def generate_pdf(shipments, report_fields=None):
         c.drawRightString(x, y, ar(text) if font == "AR" else str(text))
 
     c.setFont(ar_font, 14)
-    title = "نظام متابعة الطلبات الآلي - تقرير الشحنات"
+    title = "PORTEXA | بورتيكسا - تقرير الشحنات"
     c.drawRightString(width - 1.5 * cm, height - 1.4 * cm, ar(title) if ar_font == "AR" else title)
     draw_text_right(width - 1.5 * cm, height - 2.0 * cm, f"تاريخ الطباعة: {datetime.now().strftime('%Y-%m-%d %H:%M')}", size=9)
 
@@ -1653,7 +1909,7 @@ def generate_pdf(shipments, report_fields=None):
         y -= 0.45 * cm
 
     c.setFont(ar_font, 8)
-    footer = "جميع الحقوق محفوظة @ المهندس علي الاميري"
+    footer = "© 2026 URRISE Technologies. جميع الحقوق محفوظة."
     c.drawRightString(width - 1.5 * cm, 1.0 * cm, ar(footer) if ar_font == "AR" else footer)
 
     c.save()
@@ -1677,7 +1933,7 @@ def normalize_plan(plan_type: str) -> str:
 @app.get("/admin")
 @login_required
 def admin_home():
-    return redirect(url_for("admin_users"))
+    return redirect(url_for("billing.dashboard"))
 
 
 @app.get("/admin/users")
@@ -1744,8 +2000,8 @@ def admin_users_new():
         db.session.add(user)
         db.session.commit()
 
-        flash("تم إنشاء المستخدم بنجاح." if activate_now else "تم إنشاء المستخدم. فعّل الحساب حتى يتمكن من الدخول.", "success")
-        return redirect(url_for("admin_users"))
+        flash("تم إنشاء المستخدم وتوليد اللايسنس تلقائياً. يمكنك تفعيله الآن." if not activate_now else "تم إنشاء المستخدم وتفعيل اللايسنس.", "success")
+        return redirect(url_for("admin_users_edit", user_id=user.id))
 
     return render_template("admin_user_form.html", user=None)
 
@@ -1799,15 +2055,17 @@ def admin_users_edit(user_id):
             user.is_active = False
 
         if (request.form.get("activate_license") or "") == "1":
-            code = (request.form.get("license_code") or "").strip()
-            if code and code == (user.license_key or ""):
+            if user.is_admin:
+                flash("لا يمكن تعديل تفعيل حساب المدير من هذه الشاشة.", "danger")
+            elif user.license_activated and user.is_active:
+                flash("اللايسنس مفعل مسبقاً. لا حاجة لإعادة التفعيل.", "info")
+            else:
+                user.license_key = user.license_key or generate_license_key()
                 user.license_activated = True
                 user.is_active = True
                 user.starts_at = datetime.utcnow()
                 user.expires_at = plan_to_expiry(user.plan_type)
-                flash("تم تفعيل الحساب بنجاح.", "success")
-            else:
-                flash("كود اللايسنس غير صحيح.", "danger")
+                flash("تم تفعيل اللايسنس تلقائياً وبدأت مدة الاشتراك.", "success")
 
         if (request.form.get("deactivate") or "") == "1":
             if user.id == current_user.id:
@@ -1868,10 +2126,34 @@ def admin_tracking_settings():
     blocked = admin_required_redirect()
     if blocked:
         return blocked
+
     if request.method == "POST":
-        flash("تم إيقاف إعدادات SeaRates. تُدار بيانات المسارات من Tracking Engine.", "info")
+        api_key = (request.form.get("tracking_api_key") or "").strip()
+        base_url = (request.form.get("tracking_base_url") or "").strip().rstrip("/")
+        default_sealine = (request.form.get("tracking_default_sealine") or "").strip().upper()
+        cache_ttl = (request.form.get("tracking_cache_ttl") or "120").strip()
+
+        if not api_key:
+            flash("API_KEY مطلوب.", "danger")
+            return redirect(url_for("admin_tracking_settings"))
+        if not base_url:
+            flash("رابط API الأساسي مطلوب.", "danger")
+            return redirect(url_for("admin_tracking_settings"))
+        try:
+            ttl = max(0, int(cache_ttl))
+        except Exception:
+            ttl = 120
+
+        set_system_setting("tracking_api_key", api_key)
+        set_system_setting("tracking_base_url", base_url)
+        set_system_setting("tracking_default_sealine", default_sealine or "MSCU")
+        set_system_setting("tracking_cache_ttl", str(ttl))
+        _tracking_cache.clear()
+        db.session.commit()
+        flash("تم حفظ إعدادات التتبع بنجاح.", "success")
         return redirect(url_for("admin_tracking_settings"))
-    return render_template("admin_tracking_settings.html")
+
+    return render_template("admin_tracking_settings.html", settings=tracking_settings())
 
 
 @app.get("/admin/system-settings/tracking/test")
@@ -1880,13 +2162,26 @@ def admin_tracking_settings_test():
     blocked = admin_required_redirect()
     if blocked:
         return jsonify({"ok": False, "error": "غير مصرح"}), 403
-    return jsonify({"ok": False, "error": "تم إيقاف اتصال SeaRates الخارجي"}), 410
 
+    number = (request.args.get("number") or "").strip()
+    api_key = (request.args.get("api_key") or tracking_settings()["api_key"]).strip()
+    base_url = (request.args.get("base_url") or tracking_settings()["base_url"]).strip().rstrip("/")
+    sealine = (request.args.get("sealine") or tracking_settings()["default_sealine"]).strip().upper()
 
-@app.get("/api/tracking/searates")
-@login_required
-def api_tracking_searates_retired():
-    return jsonify({"ok": False, "error": "تم إيقاف SeaRates؛ استخدم بيانات مسارات PORTEXA"}), 410
+    if not api_key:
+        return jsonify({"ok": False, "error": "أدخل API_KEY أولاً"}), 400
+    if not number:
+        return jsonify({"ok": False, "error": "أدخل رقم بوليصة حقيقي للفحص"}), 400
+
+    result = searates_track_by_bl(
+        bl=number,
+        sealine=sealine,
+        force_update=True,
+        route=False,
+        api_key=api_key,
+        base_url=base_url,
+    )
+    return jsonify(result), (200 if result.get("ok") else 400)
 
 
 @app.route("/admin/report-settings", methods=["GET", "POST"])
@@ -2105,6 +2400,8 @@ def advertiser_ads_new():
             status="ACTIVE",
         )
         db.session.add(ad)
+        db.session.flush()
+        create_notification(current_user.id, "تم نشر الإعلان", f"تم نشر إعلانك: {ad.title}.", url_for("advertiser_ads"))
         db.session.commit()
         flash("تم رفع الإعلان ونشره.", "success")
         return redirect(url_for("advertiser_ads"))
@@ -2193,6 +2490,8 @@ def admin_clearers_new():
         user.set_password(password)
         _save_provider_user(user, "clearer", request.form, is_new=True)
         db.session.add(user)
+        for administrator in User.query.filter_by(is_admin=True).all():
+            create_notification(administrator.id, "حساب مخلص جديد", f"تم إنشاء الحساب: {user.username}.", url_for("admin_clearers"))
         db.session.commit()
         flash("تم إنشاء حساب المخلص بنجاح.", "success")
         return redirect(url_for("admin_clearers"))
@@ -2255,6 +2554,8 @@ def admin_carriers_new():
         user.set_password(password)
         _save_provider_user(user, "carrier", request.form, is_new=True)
         db.session.add(user)
+        for administrator in User.query.filter_by(is_admin=True).all():
+            create_notification(administrator.id, "حساب شركة نقل جديد", f"تم إنشاء الحساب: {user.username}.", url_for("admin_carriers"))
         db.session.commit()
         flash("تم إنشاء حساب شركة النقل بنجاح.", "success")
         return redirect(url_for("admin_carriers"))
@@ -2326,6 +2627,8 @@ def admin_support_users_new():
         user.starts_at = datetime.utcnow()
         user.expires_at = plan_to_expiry("YEARLY")
         db.session.add(user)
+        for administrator in User.query.filter_by(is_admin=True).all():
+            create_notification(administrator.id, "حساب دعم فني جديد", f"تم إنشاء الحساب: {user.username}.", url_for("admin_support_users"))
         db.session.commit()
         flash("تم إنشاء موظف دعم فني بنجاح.", "success")
         return redirect(url_for("admin_support_users"))
@@ -2391,6 +2694,7 @@ def tickets_new():
             return render_template("ticket_new.html")
         msg = TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body=body or "تم فتح التذكرة.", attachment_path=attach_path, attachment_name=attach_name)
         db.session.add(msg)
+        notify_support_staff("تذكرة دعم جديدة", f"فتح {current_user.username} تذكرة #{ticket.id}: {ticket.subject}", url_for("support_ticket_view", ticket_id=ticket.id))
         db.session.commit()
         flash("تم فتح تذكرة الدعم بنجاح.", "success")
         return redirect(url_for("ticket_view", ticket_id=ticket.id))
@@ -2415,6 +2719,7 @@ def ticket_view(ticket_id):
             flash("اكتب رسالة أو أرفق صورة.", "warning")
             return redirect(url_for("ticket_view", ticket_id=ticket.id))
         db.session.add(TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body=body, attachment_path=attach_path, attachment_name=attach_name))
+        notify_support_staff("رسالة دعم جديدة", f"رسالة جديدة في التذكرة #{ticket.id} من {current_user.username}.", url_for("support_ticket_view", ticket_id=ticket.id))
         db.session.commit()
         return redirect(url_for("ticket_view", ticket_id=ticket.id))
     return render_template("ticket_view.html", ticket=ticket, support_mode=False)
@@ -2443,6 +2748,7 @@ def support_ticket_view(ticket_id):
             ticket.closed_at = datetime.utcnow()
             ticket.assigned_to_id = ticket.assigned_to_id or current_user.id
             db.session.add(TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body="تم إغلاق التذكرة من قبل الدعم الفني."))
+            create_notification(ticket.user_id, "إغلاق تذكرة الدعم", f"تم إغلاق التذكرة #{ticket.id} من الدعم الفني.", url_for("ticket_view", ticket_id=ticket.id))
             db.session.commit()
             flash("تم إغلاق التذكرة.", "success")
             return redirect(url_for("support_ticket_view", ticket_id=ticket.id))
@@ -2460,6 +2766,7 @@ def support_ticket_view(ticket_id):
             return redirect(url_for("support_ticket_view", ticket_id=ticket.id))
         ticket.assigned_to_id = ticket.assigned_to_id or current_user.id
         db.session.add(TicketMessage(ticket_id=ticket.id, sender_id=current_user.id, body=body, attachment_path=attach_path, attachment_name=attach_name))
+        create_notification(ticket.user_id, "رد جديد من الدعم الفني", f"وصل رد جديد على التذكرة #{ticket.id}.", url_for("ticket_view", ticket_id=ticket.id))
         db.session.commit()
         return redirect(url_for("support_ticket_view", ticket_id=ticket.id))
     return render_template("ticket_view.html", ticket=ticket, support_mode=True)
@@ -2471,10 +2778,32 @@ def support_ticket_view(ticket_id):
 @app.get("/notifications")
 @login_required
 def notifications_list():
-    if is_admin():
-        return redirect(url_for("admin_users"))
     notifications = SystemNotification.query.filter_by(user_id=current_user.id).order_by(SystemNotification.id.desc()).limit(100).all()
-    return render_template("notifications.html", notifications=notifications)
+    selected = (request.args.get("category") or "all").strip()
+    unread_only = request.args.get("unread") == "1"
+    categories = {"all": "الكل", "support": "الدعم الفني", "ads": "الإعلانات",
+                  "clearance": "التخليص", "shipping": "الشحن والنقل",
+                  "quotes": "الموافقات", "system": "الإدارة", "general": "عام"}
+    if selected not in categories:
+        selected = "all"
+    notifications = [n for n in notifications
+                     if (selected == "all" or notification_category(n)[1] == selected)
+                     and (not unread_only or not n.is_read)]
+    return render_template("notifications.html", notifications=notifications,
+                           notification_category=notification_category,
+                           categories=categories, selected=selected,
+                           unread_only=unread_only)
+
+
+@app.post("/notifications/read-all")
+@login_required
+def notifications_read_all():
+    SystemNotification.query.filter_by(user_id=current_user.id, is_read=False).update(
+        {"is_read": True}, synchronize_session=False
+    )
+    db.session.commit()
+    flash("تم تحديد جميع الإشعارات كمقروءة.", "success")
+    return redirect(url_for("notifications_list"))
 
 
 @app.get("/notifications/<int:notification_id>/open")
@@ -2483,7 +2812,11 @@ def notification_open(notification_id):
     n = SystemNotification.query.filter_by(id=notification_id, user_id=current_user.id).first_or_404()
     n.is_read = True
     db.session.commit()
-    return redirect(n.url or url_for("notifications_list"))
+    target = n.url or url_for("notifications_list")
+    # Notification URLs must stay inside this application.
+    if not target.startswith("/") or target.startswith("//"):
+        target = url_for("notifications_list")
+    return redirect(target)
 
 
 # ===================== Trader Quote Decisions =====================
@@ -2730,6 +3063,103 @@ def carrier_financial_report():
     return render_template("provider_financial_report.html", provider_kind="carrier", shipments=shipments, total=total, company=company)
 
 # -------------------- Run --------------------
+# Subscription billing: separate module, preserving server-local routes.
+from subscription_billing import register_billing
+SubscriptionInvoice, SubscriptionPrice = register_billing(app, db, User)
+
+
+# Public landing and Google trial onboarding.
+from public_onboarding import register_public_onboarding
+register_public_onboarding(app, db, User, generate_license_key, plan_to_expiry)
+
+
+# Push notification campaigns
+from push_campaigns import register_push_campaigns
+register_push_campaigns(app, db, User, SystemNotification)
+
+# Carrier external bookings
+from carrier_external_bookings import register_carrier_bookings
+register_carrier_bookings(app, db, searates_track_by_bl, create_notification)
+
+
+# Unified Web Push delivery for system notifications.
+from push_event_bridge import register_push_events
+register_push_events(app, db, SystemNotification)
+
+
+# Inline notification center API.
+from notification_widget_api import register_notification_widget_api
+register_notification_widget_api(app, db, SystemNotification)
+
+
+# Retire legacy notification page.
+from notification_legacy_redirect import register_notification_legacy_redirect
+register_notification_legacy_redirect(app)
+
 if __name__ == "__main__":
     # يسمح بالدخول من أجهزة الشبكة
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+def portexa_container_movements(shipment_id):
+    """Read per-container tracking from the source shipment database, without writes."""
+    try:
+        database_path = db.engine.url.database
+        if not database_path:
+            return []
+        with sqlite3.connect(
+            Path(database_path).resolve().as_uri() + "?mode=ro",
+            uri=True, timeout=3,
+        ) as conn:
+            conn.row_factory = sqlite3.Row
+            exists = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='ops_container_movements'"
+            ).fetchone()
+            if not exists:
+                return []
+            return [dict(row) for row in conn.execute(
+                "SELECT container_number,loading_port,current_port,next_port,"
+                "discharge_port,transshipment_port,vessel_name,voyage_number,"
+                "etd,eta,current_status,operator_notes "
+                "FROM ops_container_movements WHERE shipment_id=? ORDER BY id",
+                (int(shipment_id),),
+            )]
+    except (sqlite3.Error, OSError, ValueError) as exc:
+        app.logger.warning("Container tracking read failed for shipment %s: %s", shipment_id, exc)
+        return []
+
+
+def portexa_manual_tracking(shipment_id):
+    """Read manual tracking information from the separate engine database."""
+    import sqlite3
+    from pathlib import Path
+
+    path = Path(
+        "/home/alialameeri/Portexa-Tracking-Engine/data/tracking.sqlite3"
+    )
+
+    if not path.is_file():
+        return None
+
+    try:
+        with sqlite3.connect(
+            path.resolve().as_uri() + "?mode=ro",
+            uri=True,
+            timeout=3,
+        ) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                """
+                SELECT loading_port, current_port, next_port,
+                       discharge_port, transshipment_port,
+                       vessel_name, voyage_number, container_number,
+                       etd, eta, current_status, operator_notes,
+                       updated_at, source
+                FROM portexa_manual_routes
+                WHERE source_shipment_id = ?
+                """,
+                (shipment_id,),
+            ).fetchone()
+            return dict(row) if row else None
+    except (sqlite3.Error, OSError):
+        return None
