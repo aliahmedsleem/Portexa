@@ -15,14 +15,15 @@
         </button>
         <div class="px-notify-detail" hidden>
           <p>{{ n.body or 'لا توجد تفاصيل إضافية.' }}</p>
+          <time class="px-notify-time small text-muted" data-utc="{{ n.created_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}"></time>
           {% if n.url and n.url.startswith('/') and not n.url.startswith('//') %}
-          <a class="px-notify-context" href="{{ n.url }}">الانتقال إلى الموضوع المرتبط</a>
+          <a class="px-notify-context" href="{{ url_for('notification_open', notification_id=n.id) }}">فتح التفاصيل المرتبطة</a>
           {% endif %}
         </div>
       </article>
       {% else %}<p class="px-notify-empty">ما عندك إشعارات حالياً.</p>{% endfor %}
     </div>
-    <footer class="px-notify-footer">تظهر الإشعارات الجديدة بلون أزرق فاتح حتى تفتح تفاصيلها.</footer>
+    <footer class="px-notify-footer">الإشعارات الخاصة بحسابك فقط، بتوقيت بغداد.</footer>
   </section>
 </div>
 <div class="px-push-overlay" id="px-push-overlay" hidden>
@@ -35,4 +36,4 @@
   </section>
 </div>
 <link rel="stylesheet" href="{{ url_for('static', filename='portexa-notifications-widget.css', v='2') }}">
-<script defer src="{{ url_for('static', filename='portexa-notifications-widget.js', v='3') }}"></script>
+<script defer src="{{ url_for('static', filename='portexa-notifications-widget.js', v='4') }}"></script>
