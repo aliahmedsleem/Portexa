@@ -1,0 +1,58 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*
+*secret*
+
+# Databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db-shm
+*.db-wal
+instance/
+backups/
+
+# User data and generated files
+uploads/
+media/uploads/
+logs/
+*.log
+*.log.*
+*.zip
+*.tar
+*.tar.gz
+
+# Old server backups
+*.backup*
+*.before-*
+*.bak
+*.orig
+*.old
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
+
+# Runtime user uploads
+/static/ad_uploads/
+/static/support_uploads/
+
+# Historical backup files
+*.bak-*

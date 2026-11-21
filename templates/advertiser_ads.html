@@ -1,0 +1,10 @@
+{% extends "advertiser_base.html" %}
+{% block title %}إعلاناتي{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4 portexa-list-heading"><div><h4 class="mb-1">إعلاناتي</h4><div class="text-muted small">يمكنك رفع إعلانات مصورة، وبعد انتهاء المدة تنتقل تلقائياً إلى الأرشيف.</div></div><a class="btn btn-primary" href="{{ url_for('advertiser_ads_new') }}">+ رفع إعلان</a></div>
+<div class="row g-3">
+{% for ad in ads %}
+<div class="col-lg-4 col-md-6"><div class="card border-0 shadow-sm ad-admin-card h-100"><img src="{{ url_for('static', filename=ad.image_path) }}" class="ad-admin-img" alt="{{ ad.title }}"><div class="card-body"><div class="d-flex justify-content-between"><h6>{{ ad.title }}</h6><span class="badge {{ 'text-bg-success' if ad.status=='ACTIVE' else 'text-bg-secondary' }}">{{ 'فعال' if ad.status=='ACTIVE' else 'مؤرشف' }}</span></div><div class="small text-muted">المبلغ: {{ ad.amount or 0 }} {{ ad.currency }}</div><div class="small text-muted">المدة: {{ ad.duration_days }} يوم | المتبقي: {{ ad.remaining_days() }} يوم</div><div class="small text-muted">أنشئ بتاريخ: {{ ad.created_at.strftime('%Y-%m-%d') }}</div>{% if ad.status=='ACTIVE' %}<a class="btn btn-sm btn-outline-primary mt-3" href="{{ url_for('advertiser_ads_edit', ad_id=ad.id) }}">تعديل</a>{% endif %}</div></div></div>
+{% else %}<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">لم تقم برفع أي إعلان بعد.</div></div></div>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "admin_base.html" %}
+{% block title %}{% if ad %}تعديل إعلان{% else %}إعلان جديد{% endif %}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4"><div><h4 class="mb-1">{% if ad %}تعديل إعلان{% else %}إعلان جديد{% endif %}</h4><div class="text-muted small">الصورة تظهر في المساحة السفلية داخل نظام المستخدمين.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('admin_ads') }}">إغلاق</a></div>
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post" enctype="multipart/form-data" class="row g-3">
+  <div class="col-md-6"><label class="form-label">عنوان الإعلان</label><input class="form-control" name="title" value="{{ ad.title if ad else '' }}" required></div>
+  <div class="col-md-6"><label class="form-label">حساب المعلن</label><select class="form-select" name="advertiser_id" required><option value="">اختر</option>{% for u in advertisers %}<option value="{{ u.id }}" {% if ad and ad.advertiser_id==u.id %}selected{% endif %}>{{ u.company_name or u.username }} - {{ advertiser_type_label(u.advertiser_type) }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label">تخصيص الإعلان لمستخدم معين</label><select class="form-select" name="target_user_id"><option value="">كل المستخدمين</option>{% for u in target_users %}<option value="{{ u.id }}" {% if ad and ad.target_user_id==u.id %}selected{% endif %}>{{ u.company_name or u.username }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label">رابط الإعلان</label><input class="form-control" name="link_url" value="{{ ad.link_url if ad else '' }}" placeholder="اختياري، رابط داخل أو خارج النظام"></div>
+  <div class="col-md-4"><label class="form-label">مبلغ الإعلان</label><input class="form-control" type="number" step="0.01" name="amount" value="{{ ad.amount if ad and ad.amount is not none else '' }}"></div>
+  <div class="col-md-4"><label class="form-label">العملة</label><select class="form-select" name="currency">{% for key,label in currencies.items() %}<option value="{{ key }}" {% if ad and ad.currency==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <div class="col-md-4"><label class="form-label">مدة الظهور بالأيام</label><input class="form-control" type="number" min="1" name="duration_days" value="{{ ad.duration_days if ad else 7 }}" required></div>
+  <div class="col-md-6"><label class="form-label">صورة الإعلان</label><input class="form-control" type="file" name="image" accept="image/*" {% if not ad %}required{% endif %}><div class="form-text">يفضل قياس عريض مثل 1200×240 أو 1200×300.</div></div>
+  {% if ad %}<div class="col-md-6"><label class="form-label">الحالة</label><select class="form-select" name="status"><option value="ACTIVE" {% if ad.status=='ACTIVE' %}selected{% endif %}>فعال</option><option value="ARCHIVED" {% if ad.status=='ARCHIVED' %}selected{% endif %}>مؤرشف</option></select></div><div class="col-12"><img src="{{ url_for('static', filename=ad.image_path) }}" class="ad-form-preview" alt="preview"></div>{% endif %}
+  <div class="col-12 d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('admin_ads') }}">إغلاق</a><button class="btn btn-primary">حفظ الإعلان</button></div>
+</form>
+</div></div>
+{% endblock %}

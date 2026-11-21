@@ -1,0 +1,41 @@
+{% extends "admin_base.html" %}
+{% block title %}لوحة الأدمن{% endblock %}
+{% block content %}
+<div class="page-header-responsive mb-4">
+  <div>
+    <h3 class="mb-1">لوحة تحكم الأدمن</h3>
+    <p class="text-muted mb-0">إدارة حسابات النظام والصلاحيات والاشتراكات.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('admin_users_new') }}">+ إنشاء مستخدم جديد</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body p-4"><div class="text-muted small">إجمالي المستخدمين</div><div class="fs-3 fw-bold">{{ stats.total_users }}</div></div></div></div>
+  <div class="col-12 col-md-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body p-4"><div class="text-muted small">الحسابات الفعالة</div><div class="fs-3 fw-bold text-success">{{ stats.active_users }}</div></div></div></div>
+  <div class="col-12 col-md-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body p-4"><div class="text-muted small">المخلصون</div><div class="fs-3 fw-bold text-warning">{{ stats.clearers_count }}</div></div></div></div>
+  <div class="col-12 col-md-6 col-xl-3"><div class="card border-0 shadow-sm"><div class="card-body p-4"><div class="text-muted small">الشاحنون</div><div class="fs-3 fw-bold text-info">{{ stats.shippers_count }}</div></div></div></div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-bold">أحدث المستخدمين</div>
+  <div class="card-body p-0 table-responsive responsive-table-wrap">
+    <table class="table align-middle mb-0 responsive-table">
+      <thead class="table-light"><tr><th>#</th><th>اسم المستخدم</th><th>النوع</th><th>الخطة</th><th>الحالة</th><th class="text-end">إجراءات</th></tr></thead>
+      <tbody>
+      {% for u in recent_users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td class="fw-bold">{{ u.username }}</td>
+          <td><span class="badge text-bg-{{ actor_badge_class(u.role) }}">{{ role_label(u.role) }}</span></td>
+          <td>{{ u.plan_type }}</td>
+          <td>{% if u.status_text() == 'فعال' %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-danger">غير فعال</span>{% endif %}</td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_users_edit', user_id=u.id) }}">إدارة</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">لا يوجد مستخدمون حالياً.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

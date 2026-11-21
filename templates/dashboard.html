@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم | بورتيكسا{% endblock %}
+{% block content %}
+<section class="portexa-page-heading">
+  <div><div class="portexa-eyebrow">PORTEXA / OVERVIEW</div><h1>لوحة التحكم</h1><p>نظرة شاملة على الشحنات ومواعيد الوصول وحركة الاستلام.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('shipments_new') }}">+ إضافة شحنة جديدة</a>
+</section>
+<section class="portexa-section" aria-labelledby="arrival-title">
+  <div class="portexa-section-head"><div><h2 id="arrival-title">مواعيد الوصول المتوقعة</h2><p>اضغط على أي بطاقة لعرض الشحنات المرتبطة بالفترة.</p></div></div>
+  <div class="portexa-stats-grid portexa-arrivals">
+    <a class="portexa-metric portexa-arrival urgent" href="{{ url_for('shipments_list', arrival_filter='3days') }}">
+      <span class="portexa-metric-top"><span class="portexa-metric-label">خلال 3 أيام</span><span class="portexa-metric-icon" aria-hidden="true">⏱</span></span>
+      <strong class="portexa-metric-value">{{ stats.arrivals_three_days }}</strong><span class="portexa-metric-detail">الشحنات المتوقع وصولها قريباً</span><span class="portexa-metric-action">عرض الشحنات ←</span>
+    </a>
+    <a class="portexa-metric portexa-arrival week" href="{{ url_for('shipments_list', arrival_filter='week') }}">
+      <span class="portexa-metric-top"><span class="portexa-metric-label">هذا الأسبوع</span><span class="portexa-metric-icon" aria-hidden="true">▦</span></span>
+      <strong class="portexa-metric-value">{{ stats.arrivals_week }}</strong><span class="portexa-metric-detail">الشحنات المتوقعة خلال الأسبوع</span><span class="portexa-metric-action">عرض الشحنات ←</span>
+    </a>
+    <a class="portexa-metric portexa-arrival month" href="{{ url_for('shipments_list', arrival_filter='month') }}">
+      <span class="portexa-metric-top"><span class="portexa-metric-label">هذا الشهر</span><span class="portexa-metric-icon" aria-hidden="true">◷</span></span>
+      <strong class="portexa-metric-value">{{ stats.arrivals_month }}</strong><span class="portexa-metric-detail">الشحنات المتوقعة خلال الشهر</span><span class="portexa-metric-action">عرض الشحنات ←</span>
+    </a>
+  </div>
+</section>
+<section class="portexa-section" aria-labelledby="stats-title">
+  <div class="portexa-section-head"><div><h2 id="stats-title">إحصائيات الشحنات</h2><p>ملخص الأعداد والحالات الحالية في النظام.</p></div></div>
+  <div class="portexa-stats-grid portexa-overview">
+    <article class="portexa-metric orders">
+      <span class="portexa-metric-label">إجمالي الطلبات</span>
+      <strong class="portexa-metric-value">{{ stats.total_orders }}</strong>
+      <span class="portexa-metric-detail">جميع الطلبات المسجلة</span>
+    </article>
+    <article class="portexa-metric cars">
+      <span class="portexa-metric-label">إجمالي السيارات</span>
+      <strong class="portexa-metric-value">{{ stats.total_cars }}</strong>
+      <span class="portexa-metric-detail">السيارات المسجلة بالنظام</span>
+    </article>
+    <article class="portexa-metric containers">
+      <span class="portexa-metric-label">إجمالي الحاويات</span>
+      <strong class="portexa-metric-value">{{ stats.total_containers }}</strong>
+      <span class="portexa-metric-detail">الحاويات المسجلة بالنظام</span>
+    </article>
+    <article class="portexa-metric received">
+      <span class="portexa-metric-label">الحاويات المستلمة</span>
+      <strong class="portexa-metric-value">{{ stats.containers_received }}</strong>
+      <span class="portexa-metric-detail">تم استلامها</span>
+    </article>
+    <article class="portexa-metric pending">
+      <span class="portexa-metric-label">الحاويات غير المستلمة</span>
+      <strong class="portexa-metric-value">{{ stats.containers_not_received }}</strong>
+      <span class="portexa-metric-detail">بانتظار الاستلام</span>
+    </article>
+    <article class="portexa-metric transit">
+      <span class="portexa-metric-label">حاويات قيد الشحن</span>
+      <strong class="portexa-metric-value">{{ stats.containers_in_transit }}</strong>
+      <span class="portexa-metric-detail">في الطريق إلى الوجهة</span>
+    </article>
+    <article class="portexa-metric received">
+      <span class="portexa-metric-label">السيارات المستلمة</span>
+      <strong class="portexa-metric-value">{{ stats.cars_received }}</strong>
+      <span class="portexa-metric-detail">تم استلامها</span>
+    </article>
+    <article class="portexa-metric pending">
+      <span class="portexa-metric-label">السيارات غير المستلمة</span>
+      <strong class="portexa-metric-value">{{ stats.cars_not_received }}</strong>
+      <span class="portexa-metric-detail">بانتظار الاستلام</span>
+    </article>
+    <article class="portexa-metric transit">
+      <span class="portexa-metric-label">سيارات قيد الشحن</span>
+      <strong class="portexa-metric-value">{{ stats.cars_in_transit }}</strong>
+      <span class="portexa-metric-detail">في الطريق إلى الوجهة</span>
+    </article>
+  </div>
+</section>
+{% endblock %}

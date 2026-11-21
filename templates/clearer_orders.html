@@ -1,0 +1,18 @@
+{% extends "provider_base.html" %}
+{% block title %}طلبات التخليص{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4 portexa-list-heading"><div><h4 class="mb-1">طلبات التخليص</h4><div class="text-muted small">الطلبات التي اختارك التاجر كمخلص لها. السعر يحتاج موافقة التاجر قبل اعتماد التنفيذ.</div></div><a class="btn btn-outline-secondary" href="{{ url_for('clearer_orders', status='ARCHIVE' if status != 'ARCHIVE' else 'ACTIVE') }}">{{ 'أرشيف المنجز' if status != 'ARCHIVE' else 'الطلبات الفعالة' }}</a></div>
+<div class="row g-3">
+{% for s in shipments %}
+<div class="col-12"><div class="card border-0 shadow-sm service-order-card"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2"><div><h5 class="mb-1">طلب تخليص #{{ s.id }}</h5><div class="text-muted small">التاجر: {{ s.owner.company_name or s.owner.username if s.owner else '-' }}</div></div><div class="d-flex gap-2 flex-wrap"><span class="badge text-bg-info">{{ clearance_status_label(s.clearance_status) }}</span><span class="badge text-bg-secondary">{{ quote_status_label(s.clearance_quote_status) }}</span></div></div>
+  <div class="row g-2 mt-3 small">
+    <div class="col-md-3"><strong>رقم الحاوية/البوليصة:</strong> {{ s.bol_no or '-' }}</div><div class="col-md-2"><strong>عدد الحاويات:</strong> {{ s.containers_count or 0 }}</div><div class="col-md-3"><strong>تاريخ الشحن:</strong> {{ s.ship_date.strftime('%Y-%m-%d') if s.ship_date else '-' }}</div><div class="col-md-3"><strong>تاريخ الوصول:</strong> {{ s.arrival_date.strftime('%Y-%m-%d') if s.arrival_date else '-' }}</div>
+    <div class="col-md-3"><strong>البلد:</strong> {{ s.country.name if s.country else '-' }}</div><div class="col-md-3"><strong>المعمل:</strong> {{ s.factory.name if s.factory else '-' }}</div><div class="col-md-3"><strong>مبلغ الشحن:</strong> {{ money(s.shipping_cost) if s.shipping_cost else '-' }}</div>
+    <div class="col-md-3"><strong>مبلغ التخليص:</strong> {{ money(s.clearance_cost) if s.clearance_cost is not none else '-' }}</div>
+  </div>
+  {% if s.clearance_status != 'DONE' %}<form method="post" action="{{ url_for('clearer_order_update', shipment_id=s.id) }}" class="row g-2 mt-3 align-items-end"><div class="col-md-4"><label class="form-label">حالة التخليص</label><select class="form-select" name="clearance_status">{% for key,label in statuses.items() %}<option value="{{ key }}" {% if s.clearance_status==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label">مبلغ التخليص / تحديث السعر</label><input class="form-control" name="clearance_cost" value="{{ s.clearance_cost if s.clearance_cost is not none else '' }}"><div class="form-text">عند تغيير السعر ينتقل للتاجر للموافقة أو الرفض.</div></div><div class="col-md-4"><button class="btn btn-primary w-100">حفظ وإرسال إشعار</button></div></form>{% endif %}
+</div></div></div>
+{% else %}<div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">لا توجد طلبات.</div></div></div>{% endfor %}
+</div>
+{% endblock %}

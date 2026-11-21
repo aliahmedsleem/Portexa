@@ -1,0 +1,17 @@
+{% extends "support_base.html" %}
+{% block title %}تذاكر الدعم الفني{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+  <div><h4 class="mb-1">تذاكر الدعم الفني</h4><div class="text-muted small">كل تذكرة مرتبطة بالمستخدم الذي فتحها، والرسائل محفوظة كسجل غير قابل للحذف.</div></div>
+  <div class="btn-group"><a class="btn btn-outline-primary {% if status == 'OPEN' %}active{% endif %}" href="{{ url_for('support_tickets', status='OPEN') }}">المفتوحة</a><a class="btn btn-outline-secondary {% if status == 'CLOSED' %}active{% endif %}" href="{{ url_for('support_tickets', status='CLOSED') }}">المغلقة</a><a class="btn btn-outline-dark {% if status not in ['OPEN','CLOSED'] %}active{% endif %}" href="{{ url_for('support_tickets', status='ALL') }}">الكل</a></div>
+</div>
+<div class="row g-3">
+{% for t in tickets %}
+<div class="col-12 col-xl-6"><a class="ticket-card support-ticket-card" href="{{ url_for('support_ticket_view', ticket_id=t.id) }}">
+  <div class="d-flex justify-content-between gap-2"><strong>#{{ t.id }} - {{ t.subject }}</strong>{% if t.status == 'OPEN' %}<span class="badge text-bg-success">مفتوحة</span>{% else %}<span class="badge text-bg-secondary">مغلقة</span>{% endif %}</div>
+  <div class="small text-muted mt-2">العميل: {{ t.user.company_name or t.user.username }} · {{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+  <div class="small mt-2">الموظف: {{ t.assigned_to.username if t.assigned_to else 'لم يتم الاستلام بعد' }}</div>
+</a></div>
+{% else %}<div class="col-12"><div class="empty-state">لا توجد تذاكر ضمن هذا التصنيف.</div></div>{% endfor %}
+</div>
+{% endblock %}
