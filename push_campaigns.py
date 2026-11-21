@@ -2,7 +2,20 @@
 import json
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+
+BAGHDAD_TZ = ZoneInfo('Asia/Baghdad')
+
+def baghdad_to_utc_naive(local_value):
+    local = datetime.fromisoformat(local_value)
+    if local.tzinfo is not None:
+        raise ValueError('يرجى إدخال الوقت المحلي بدون منطقة زمنية')
+    return local.replace(tzinfo=BAGHDAD_TZ).astimezone(timezone.utc).replace(tzinfo=None)
+
+def utc_to_baghdad(utc_value):
+    return utc_value.replace(tzinfo=timezone.utc).astimezone(BAGHDAD_TZ)
+
 from urllib.parse import urlparse
 from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, session, url_for, Response
 from flask_login import current_user, login_required
@@ -156,7 +169,7 @@ def register_push_campaigns(app, db, User, SystemNotification):
             if not title or not body or len(title)>160 or len(body)>500:
                 abort(400)
             try:
-                when = datetime.fromisoformat(request.form.get("scheduled_at", ""))
+                when = baghdad_to_utc_naive(request.form.get("scheduled_at", ""))
                 if when < datetime.utcnow().replace(second=0, microsecond=0):
                     raise ValueError("موعد الحملة يجب أن يكون مستقبلياً")
                 target = safe_url(request.form.get("target_url"))
@@ -175,6 +188,7 @@ def register_push_campaigns(app, db, User, SystemNotification):
             admin=is_admin(),
             csrf=token(),
             deletable_statuses=DELETABLE_STATUSES,
+            utc_to_baghdad=utc_to_baghdad,
         )
 
     @bp.post("/campaigns/<int:campaign_id>/review")
