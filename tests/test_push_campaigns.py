@@ -1,6 +1,9 @@
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from threading import Event
 from urllib.parse import urlsplit
 
 from flask import Flask
@@ -13,13 +16,16 @@ from sqlalchemy.exc import IntegrityError
 from push_campaigns import register_push_campaigns
 
 
-class CampaignDeletionTests(unittest.TestCase):
+class CampaignFixture(unittest.TestCase):
     def setUp(self):
+        self.configure_app("sqlite:///:memory:")
+
+    def configure_app(self, database_uri):
         app = Flask(__name__, template_folder=str(Path(__file__).resolve().parents[1] / "templates"))
         app.config.update(
             TESTING=True,
             SECRET_KEY="isolated-test-key",
-            SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
+            SQLALCHEMY_DATABASE_URI=database_uri,
         )
         layouts = {
             name: '<html dir="rtl">{% block content %}{% endblock %}</html>'
@@ -106,6 +112,8 @@ class CampaignDeletionTests(unittest.TestCase):
             )).all()
             self.assertEqual(len(deliveries), int(present))
 
+
+class CampaignDeletionTests(CampaignFixture):
     def test_signed_out_redirects_to_login(self):
         campaign_id = self.campaign("REJECTED")
         response = self.delete(campaign_id)
@@ -126,6 +134,7 @@ class CampaignDeletionTests(unittest.TestCase):
         self.assertEqual(self.client.get(self.delete_url(campaign_id)).status_code, 405)
         self.assertEqual(self.delete(campaign_id).status_code, 400)
         self.assertEqual(self.delete(campaign_id, "invalid").status_code, 400)
+        self.assertEqual(self.delete(campaign_id, "غير صالح").status_code, 400)
         self.assertEqual(self.delete(campaign_id, csrf, confirmed=False).status_code, 400)
         self.assert_history(campaign_id, present=True)
 
@@ -177,3 +186,44 @@ class CampaignDeletionTests(unittest.TestCase):
         page = self.client.get("/push/campaigns").get_data(as_text=True)
         self.assertIn("Test campaign", page)
         self.assertNotIn('name="confirm_delete"', page)
+
+
+class CampaignConcurrencyTests(CampaignFixture):
+    def setUp(self):
+        folder = self.enterContext(TemporaryDirectory())
+        self.configure_app(f"sqlite:///{Path(folder) / 'campaigns.sqlite'}")
+
+    def test_stale_cancel_cannot_make_sending_campaign_deletable(self):
+        campaign_id = self.campaign("APPROVED")
+        csrf = self.sign_in(1)
+        with self.app.app_context():
+            engine = self.db.engine
+
+        waiting, resume = Event(), Event()
+
+        @event.listens_for(engine, "before_cursor_execute")
+        def pause_cancellation(connection, cursor, statement, parameters, context, many):
+            if statement.startswith("UPDATE push_campaign") and "CANCELLED" in parameters:
+                waiting.set()
+                if not resume.wait(5):
+                    raise TimeoutError("Waiting for the competing status update")
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            cancellation = pool.submit(
+                self.client.post, f"/push/campaigns/{campaign_id}/cancel", data={"_csrf": csrf}
+            )
+            try:
+                self.assertTrue(waiting.wait(5))
+                with engine.begin() as connection:
+                    changed = connection.execute(
+                        self.Campaign.__table__.update()
+                        .where(self.Campaign.id == campaign_id, self.Campaign.status == "APPROVED")
+                        .values(status="SENDING")
+                    )
+                    self.assertEqual(changed.rowcount, 1)
+            finally:
+                resume.set()
+            self.assertEqual(cancellation.result().status_code, 409)
+
+        self.assertEqual(self.delete(campaign_id, csrf).status_code, 409)
+        self.assert_history(campaign_id, present=True)

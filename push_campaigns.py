@@ -61,7 +61,7 @@ def register_push_campaigns(app, db, User, SystemNotification):
 
     def verify():
         value = request.headers.get("X-Push-CSRF") or request.form.get("_csrf", "")
-        if not secrets.compare_digest(value, token()):
+        if not secrets.compare_digest(value.encode(), token().encode()):
             abort(400)
 
     def is_admin():
@@ -189,6 +189,14 @@ def register_push_campaigns(app, db, User, SystemNotification):
         action = request.form.get("action")
         if action not in ("approve", "reject"):
             abort(400)
+        updates = {
+            Campaign.status: "APPROVED" if action == "approve" else "REJECTED",
+            Campaign.reviewer_id: current_user.id,
+            Campaign.reviewed_at: datetime.utcnow(),
+            Campaign.rejection_reason: (
+                (request.form.get("reason") or "").strip()[:500] if action == "reject" else None
+            ),
+        }
         if action == "approve" and c.kind == "AD":
             from decimal import Decimal, InvalidOperation
             try:
@@ -200,11 +208,12 @@ def register_push_campaigns(app, db, User, SystemNotification):
             currency = request.form.get("currency")
             if currency not in ("IQD", "USD"):
                 abort(400)
-            c.amount, c.currency = amount, currency
-        c.status = "APPROVED" if action == "approve" else "REJECTED"
-        c.reviewer_id = current_user.id
-        c.reviewed_at = datetime.utcnow()
-        c.rejection_reason = (request.form.get("reason") or "").strip()[:500] if action == "reject" else None
+            updates.update({Campaign.amount: amount, Campaign.currency: currency})
+        if not Campaign.query.filter_by(id=campaign_id, status="PENDING").update(
+            updates, synchronize_session=False
+        ):
+            db.session.rollback()
+            abort(409)
         db.session.commit()
         return redirect(url_for(".campaigns"))
 
@@ -215,9 +224,12 @@ def register_push_campaigns(app, db, User, SystemNotification):
         c = Campaign.query.get_or_404(campaign_id)
         if not (is_admin() or c.creator_id == current_user.id):
             abort(403)
-        if c.status not in ("PENDING", "APPROVED"):
+        cancellable = Campaign.query.filter(
+            Campaign.id == campaign_id, Campaign.status.in_(("PENDING", "APPROVED"))
+        )
+        if not cancellable.update({Campaign.status: "CANCELLED"}, synchronize_session=False):
+            db.session.rollback()
             abort(409)
-        c.status = "CANCELLED"
         db.session.commit()
         return redirect(url_for(".campaigns"))
 
@@ -257,9 +269,18 @@ def register_push_campaigns(app, db, User, SystemNotification):
         subject = os.environ.get("PUSH_VAPID_SUBJECT")
         if not key or not subject:
             raise RuntimeError("Configure PUSH_VAPID_PRIVATE_KEY and PUSH_VAPID_SUBJECT")
-        for c in Campaign.query.filter(Campaign.status=="APPROVED", Campaign.scheduled_at<=datetime.utcnow()).order_by(Campaign.id).all():
-            c.status = "SENDING"
+        due = Campaign.query.filter_by(status="APPROVED").filter(
+            Campaign.scheduled_at <= datetime.utcnow()
+        )
+        for (campaign_id,) in due.with_entities(Campaign.id).order_by(Campaign.id).all():
+            claimed = due.filter_by(id=campaign_id).update(
+                {Campaign.status: "SENDING"}, synchronize_session=False
+            )
+            if not claimed:
+                db.session.rollback()
+                continue
             db.session.commit()
+            c = db.session.get(Campaign, campaign_id)
             users = audience_users(c).with_entities(User.id).all()
             for (user_id,) in users:
                 subs = Subscription.query.filter_by(user_id=user_id, ads_enabled=(c.kind=="AD")).all() if c.kind=="AD" else Subscription.query.filter_by(user_id=user_id).all()
