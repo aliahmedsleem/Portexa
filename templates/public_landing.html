@@ -47,22 +47,22 @@
     </section>
     <section class="wrap section" id="choose-role" aria-labelledby="roles-heading">
       <h2 id="roles-heading">شنو طبيعة عملك؟</h2>
-      <p class="hint">اختر نوع حسابك، ثم أكمل التسجيل بحساب Google الموثّق.</p>
+      <p class="hint">اختر نوع حسابك، ثم سجل باسم المستخدم وكلمة المرور أو باستخدام Google.</p>
       <div class="roles">
         <article class="role">
           <div class="symbol" aria-hidden="true">▣</div><h3>تاجر</h3>
           <p>نظّم شحناتك وبياناتها وتابع مراحلها من لوحة واحدة.</p>
-          <a class="primary" href="{{ url_for('onboarding.google_start', role='merchant') }}">التسجيل كتاجر</a>
+          <a class="primary" href="{{ url_for('onboarding.manual_register', role='merchant') }}">التسجيل كتاجر</a>
         </article>
         <article class="role">
           <div class="symbol" aria-hidden="true">▤</div><h3>مخلص كمركي</h3>
           <p>تابع طلبات التخليص وحالات المعاملات المرتبطة بعملك.</p>
-          <a class="primary" href="{{ url_for('onboarding.google_start', role='clearer') }}">التسجيل كمخلص كمركي</a>
+          <a class="primary" href="{{ url_for('onboarding.manual_register', role='clearer') }}">التسجيل كمخلص كمركي</a>
         </article>
         <article class="role">
           <div class="symbol" aria-hidden="true">⚓</div><h3>وسيط شحن</h3>
           <p>نظّم خدمات النقل والشحن والطلبات المرتبطة بالعملاء.</p>
-          <a class="primary" href="{{ url_for('onboarding.google_start', role='carrier') }}">التسجيل كوسيط شحن</a>
+          <a class="primary" href="{{ url_for('onboarding.manual_register', role='carrier') }}">التسجيل كوسيط شحن</a>
         </article>
       </div>
       <p class="note">التجربة المجانية 3 أيام. لن يُطلب منك الدفع عند التسجيل. {% if not google_ready %}التسجيل عبر Google قيد الإعداد حالياً.{% endif %}</p>
