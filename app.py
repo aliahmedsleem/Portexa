@@ -848,6 +848,7 @@ def guard_everything():
         "static",
         "push_campaigns.worker",
         "onboarding.landing",
+        "onboarding.manual_register",
         "onboarding.google_login_start",
         "onboarding.google_start",
         "onboarding.google_callback",
