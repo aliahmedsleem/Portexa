@@ -53,6 +53,54 @@ def register_public_onboarding(app, db, User, generate_license_key, plan_to_expi
             return redirect(destination(current_user))
         return render_template("public_landing.html", google_ready=all(google_settings()))
 
+    @bp.route("/join", methods=["GET", "POST"])
+    def manual_register():
+        if current_user.is_authenticated:
+            return redirect(destination(current_user))
+        role = request.form.get("role", "") if request.method == "POST" else request.args.get("role", "merchant")
+        errors = []
+        values = {"full_name": "", "username": ""}
+        csrf = session.setdefault("manual_join_csrf", secrets.token_urlsafe(32))
+        if request.method == "POST":
+            if not secrets.compare_digest(request.form.get("csrf", ""), csrf):
+                abort(400)
+            values = {key: (request.form.get(key) or "").strip() for key in values}
+            full_name = " ".join(values["full_name"].split())
+            username = values["username"].lower()
+            password = request.form.get("password") or ""
+            if role not in ROLE_LABELS:
+                errors.append("اختر نوع الحساب.")
+            if not 2 <= len(full_name) <= 200:
+                errors.append("أدخل اسمك الكامل.")
+            if not re.fullmatch(r"[a-z0-9_]{3,40}", username) or username.startswith("google_"):
+                errors.append("اسم المستخدم: من 3 إلى 40 حرفاً إنجليزياً أو رقماً أو شرطة سفلية.")
+            elif User.query.filter(func.lower(User.username) == username).first():
+                errors.append("اسم المستخدم مستخدم بالفعل. اختر اسماً آخر.")
+            if not 8 <= len(password) <= 128:
+                errors.append("كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.")
+            if not errors:
+                user = User(username=username, owner_name=full_name,
+                            is_admin=False, is_support=False, is_advertiser=False,
+                            is_clearer=role == "clearer", is_carrier=role == "carrier",
+                            advertiser_type="MERCHANT", plan_type="TRIAL",
+                            starts_at=datetime.utcnow(), expires_at=plan_to_expiry("TRIAL"),
+                            license_key=generate_license_key(), license_activated=True, is_active=True)
+                user.set_password(password)
+                try:
+                    db.session.add(user)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                    current_app.logger.exception("Manual onboarding failed")
+                    errors.append("تعذر إنشاء الحساب. تحقق من اسم المستخدم وحاول مرة أخرى.")
+                else:
+                    session.pop("manual_join_csrf", None)
+                    login_user(user, remember=True)
+                    return redirect(destination(user))
+        return render_template("public_manual_register.html", role=role if role in ROLE_LABELS else "merchant",
+                               roles=ROLE_LABELS, errors=errors, values=values, csrf=csrf,
+                               google_ready=all(google_settings()))
+
     @bp.get("/login/google")
     def google_login_start():
         return start_google_oauth(mode="login")
