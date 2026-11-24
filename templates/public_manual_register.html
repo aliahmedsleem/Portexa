@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}إنشاء حساب | بورتيكسا{% endblock %}
+{% block content %}
+<section class="portexa-auth" dir="rtl">
+<div class="portexa-auth-hero"><div><div class="eyebrow">URRISE TECHNOLOGIES · LOGISTICS SOLUTIONS</div><h1>PORTEXA</h1><p>إدارة أذكى لكل شحنة.</p></div></div>
+<div class="portexa-auth-panel">
+<div class="text-center mb-3"><img src="{{ url_for('static', filename='logo.png') }}" alt="بورتيكسا" style="max-height:72px;max-width:160px"></div>
+<h2 class="text-center">إنشاء حساب جديد</h2>
+<p class="text-center text-muted">اختر نوع حسابك وأدخل بياناتك.</p>
+{% if errors %}<div class="alert alert-danger" role="alert">{% for error in errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+<form method="post">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="mb-3"><label for="role" class="form-label">نوع الحساب</label><select class="form-select" id="role" name="role" required>{% for key,label in roles.items() %}<option value="{{ key }}" {% if role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div class="mb-3"><label for="full_name" class="form-label">الاسم الكامل</label><input class="form-control" id="full_name" name="full_name" autocomplete="name" maxlength="200" required value="{{ values.full_name }}"></div>
+<div class="mb-3"><label for="username" class="form-label">اسم المستخدم</label><input class="form-control" id="username" name="username" dir="ltr" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="40" pattern="[A-Za-z0-9_]{3,40}" required value="{{ values.username }}"><small class="text-muted">حروف إنجليزية أو أرقام أو _ بدون مسافات.</small></div>
+<div class="mb-3"><label for="password" class="form-label">كلمة المرور</label><div class="input-group"><input class="form-control" id="password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button class="btn btn-outline-secondary" type="button" id="toggle-password">إظهار</button></div><small class="text-muted">8 أحرف على الأقل.</small></div>
+<button class="btn btn-primary w-100" type="submit" style="min-height:48px">إنشاء الحساب</button>
+</form>
+{% if google_ready %}<div class="text-center my-3 text-muted">أو</div><a id="google-register" class="btn btn-outline-secondary w-100" style="min-height:48px" href="{{ url_for('onboarding.google_start', role=role) }}">التسجيل باستخدام Google</a>{% endif %}
+<p class="text-center mt-3">لديك حساب؟ <a href="{{ url_for('login') }}">تسجيل الدخول</a></p>
+<p class="text-center small text-muted">تجربة مجانية لمدة 3 أيام.</p>
+</div></section>
+<script>
+const roleField=document.getElementById('role'),googleLink=document.getElementById('google-register');
+if(googleLink)roleField.addEventListener('change',()=>{const u=new URL(googleLink.href);u.searchParams.set('role',roleField.value);googleLink.href=u.toString()});
+const pw=document.getElementById('password'),toggle=document.getElementById('toggle-password');
+toggle.addEventListener('click',()=>{pw.type=pw.type==='password'?'text':'password';toggle.textContent=pw.type==='password'?'إظهار':'إخفاء'});
+</script>
+{% endblock %}
