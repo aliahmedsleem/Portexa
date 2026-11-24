@@ -23,7 +23,7 @@
     <form method="post">
       <div class="mb-3">
         <label for="portexa-username" class="form-label">اسم المستخدم</label>
-        <input id="portexa-username" name="username" class="form-control" autocomplete="username" required>
+        <input id="portexa-username" name="username" class="form-control" autocomplete="username" autocapitalize="none" spellcheck="false" required>
       </div>
       <div class="mb-4">
         <label for="portexa-password" class="form-label">كلمة المرور</label>
@@ -53,7 +53,7 @@
 
     <p class="text-center mt-4 mb-2 small">
       ليس لديك حساب؟
-      <a href="{{ url_for('onboarding.landing') }}"
+      <a href="{{ url_for('onboarding.manual_register') }}"
          class="fw-bold text-decoration-none">
         إنشاء حساب جديد
       </a>
